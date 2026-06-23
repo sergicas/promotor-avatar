@@ -80,12 +80,11 @@ def executa(data_override=None):
 
     print("Tema: {}".format(posts.get("tema", "—")))
 
+    # Anti-duplicats: NO es fa servir cap estat local (es desincronitza). La
+    # comprovació real la fa publica_post contra Buffer (_ja_programat_aquell_dia):
+    # si un canal ja té un post aquell dia, torna {ok, skip} i no en crea cap altre.
     errors = 0
     for canal in PLATAFORMES:
-        if _ja_publicat(data_str, canal):
-            print("• {}: ja enviat per a aquest dia — saltat".format(canal))
-            continue
-
         bloc = posts.get(canal) or {}
         text = bloc.get("text", "")
         if not text:
@@ -97,7 +96,6 @@ def executa(data_override=None):
 
         res = publica_post(canal, text, imatge, data_str)
         if res.get("ok"):
-            _marcar_publicat(data_str, canal, res.get("id", ""))
             print("✓ {}: {}".format(canal, res.get("msg", "enviat")))
         else:
             errors += 1
