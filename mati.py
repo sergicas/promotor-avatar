@@ -76,7 +76,7 @@ def executa(data_override=None):
     posts = _obtenir_posts_dia(data_str)
     if "error" in posts:
         print("✗ No s'han pogut generar els posts: {}".format(posts["error"]))
-        return 1
+        return 1, [], data_str
 
     print("Tema: {}".format(posts.get("tema", "—")))
 
@@ -110,19 +110,12 @@ def executa(data_override=None):
             "msg": res.get("error") or res.get("msg", ""),
         })
 
-    # Resum per correu: que en Sergi vegi els posts de demà abans de les 7:00
-    try:
-        from correu import envia_resum
-        envia_resum(data_str, items)
-    except Exception as e:
-        print("[mati] no s'ha pogut enviar el resum per correu: {}".format(e))
-
     if errors:
         print("Acabat amb {} error(s). Revisa els missatges de dalt.".format(errors))
-        return 1
+        return 1, items, data_str
 
     print("Tot programat a Buffer per a demà a les 7:00. Pots revisar-ho a buffer.com.")
-    return 0
+    return 0, items, data_str
 
 
 def executa_amb_reintents(data_override=None):
@@ -145,18 +138,28 @@ def executa_amb_reintents(data_override=None):
     # Esperar que el Wi-Fi estigui realment connectat abans de començar
     # (el Mac s'acaba de despertar i la xarxa pot trigar uns segons/minuts).
     espera_xarxa()
+    codi, items, data_str = 1, [], data_override or ""
     for intent in range(1, REINTENTS_MATI + 1):
-        codi = executa(data_override)
+        codi, items, data_str = executa(data_override)
         if codi == 0:
-            return 0
+            break
         if intent < REINTENTS_MATI:
             espera = ESPERA_MATI[min(intent - 1, len(ESPERA_MATI) - 1)]
             print("\n⟳ Passada {}/{} amb errors; reintent complet en {}s…\n".format(
                 intent, REINTENTS_MATI, espera))
             time.sleep(espera)
-    print("\n✗ No s'ha pogut completar després de {} passades. "
-          "Revisa-ho al tauler (app Promotor Avatar del Dock).".format(REINTENTS_MATI))
-    return 1
+
+    # Resum per correu UNA sola vegada, amb l'estat final (que en Sergi vegi
+    # els posts de demà abans de les 7:00).
+    try:
+        from correu import envia_resum
+        envia_resum(data_str, items)
+    except Exception as e:
+        print("[mati] no s'ha pogut enviar el resum per correu: {}".format(e))
+
+    if codi != 0:
+        print("\n✗ No s'ha pogut completar del tot després de {} passades.".format(REINTENTS_MATI))
+    return codi
 
 
 if __name__ == "__main__":
