@@ -24,9 +24,13 @@ Les imatges locals es pugen a catbox.moe per obtenir una URL pública,
 perquè l'API de Buffer només accepta URLs d'imatge (no binari).
 """
 
+import base64
 import datetime
 import json
+import os
 import re
+import subprocess
+import time
 from pathlib import Path
 
 import requests
@@ -36,6 +40,11 @@ from config import get_key
 BUFFER_API_URL = "https://api.buffer.com"
 CATBOX_API_URL = "https://catbox.moe/user/api.php"
 FITXER_CANALS = Path(__file__).parent / "dades" / "canals.json"
+
+# Repositori públic de GitHub on es pengen les imatges per obtenir-ne una URL
+# pública (Buffer només accepta URLs, no binari). Es fa servir GitHub perquè,
+# a diferència de catbox.moe, no bloqueja les IP dels servidors (GitHub Actions).
+GH_IMG_REPO = os.environ.get("GH_IMG_REPO", "sergicas/promotor-avatar")
 
 XARXES = ("twitter", "linkedin", "instagram")
 
@@ -170,8 +179,71 @@ def get_canals(forcar_refresc=False):
 # Imatges: cada xarxa porta la SEVA imatge del dia (diferent a cada xarxa)
 # ---------------------------------------------------------------------------
 
+def _gh_token():
+    """Token de GitHub: a Actions ve de GITHUB_TOKEN; al Mac, de `gh auth token`."""
+    t = os.environ.get("GITHUB_TOKEN", "").strip()
+    if t:
+        return t
+    try:
+        return subprocess.check_output(
+            ["gh", "auth", "token"], stderr=subprocess.DEVNULL, timeout=10
+        ).decode().strip()
+    except Exception:
+        return ""
+
+
+def _puja_imatge_github(cami):
+    """Puja la imatge al repositori públic de GitHub (API Contents) i retorna
+    la URL raw pública. None si falla. Funciona des de qualsevol lloc (GitHub
+    no bloqueja les seves pròpies IP, a diferència de catbox.moe)."""
+    token = _gh_token()
+    if not token:
+        return None
+    try:
+        contingut = cami.read_bytes()
+    except OSError as e:
+        print("[publicador] No puc llegir la imatge {}: {}".format(cami, e))
+        return None
+    # Nom únic perquè sempre sigui una creació nova (no cal el SHA per a updates)
+    nom = "img/{}-{}".format(int(time.time() * 1000), cami.name)
+    api = "https://api.github.com/repos/{}/contents/{}".format(GH_IMG_REPO, nom)
+    raw = "https://raw.githubusercontent.com/{}/main/{}".format(GH_IMG_REPO, nom)
+    try:
+        r = requests.put(
+            api,
+            headers={"Authorization": "Bearer " + token,
+                     "Accept": "application/vnd.github+json"},
+            json={"message": "imatge " + cami.name,
+                  "content": base64.b64encode(contingut).decode()},
+            timeout=60,
+        )
+        if r.status_code not in (200, 201):
+            print("[publicador] GitHub ha respost {}: {}".format(r.status_code, r.text[:200]))
+            return None
+    except Exception as e:
+        print("[publicador] Error pujant a GitHub: {}".format(e))
+        return None
+    # Esperar que la URL pública (CDN) sigui accessible abans de tornar-la,
+    # perquè Buffer la pugui descarregar de seguida
+    for _ in range(5):
+        try:
+            if requests.get(raw, timeout=15).status_code == 200:
+                return raw
+        except Exception:
+            pass
+        time.sleep(2)
+    return raw  # encara que la verificació falli, normalment ja és vàlida
+
+
+def _puja_imatge(cami):
+    """Obté una URL pública per a la imatge: primer GitHub; si falla, catbox."""
+    return _puja_imatge_github(cami) or _puja_a_catbox(cami)
+
+
 def _puja_a_catbox(cami):
-    """Puja una imatge a catbox.moe i retorna la URL pública. None si falla."""
+    """Puja una imatge a catbox.moe i retorna la URL pública. None si falla.
+    (Reserva: catbox bloqueja les IP de GitHub Actions, per això la via
+    principal és _puja_imatge_github.)"""
     try:
         contingut = cami.read_bytes()
     except OSError as e:
@@ -234,10 +306,10 @@ def _imatge_publica(descripcio, text, data_str, xarxa):
             "No s'ha pogut generar la imatge per a {}. Revisa GEMINI_API_KEY (Imagen 4)."
         ).format(xarxa)
 
-    url = _puja_a_catbox(cami)
+    url = _puja_imatge(cami)
     if not url:
         return None, (
-            "La imatge s'ha generat ({}) però no s'ha pogut pujar a catbox.moe "
+            "La imatge s'ha generat ({}) però no s'ha pogut penjar enlloc "
             "per obtenir-ne una URL pública. Torna-ho a provar d'aquí una estona."
         ).format(cami.name)
 
