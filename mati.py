@@ -84,12 +84,14 @@ def executa(data_override=None):
     # comprovació real la fa publica_post contra Buffer (_ja_programat_aquell_dia):
     # si un canal ja té un post aquell dia, torna {ok, skip} i no en crea cap altre.
     errors = 0
+    items = []  # per al resum per correu
     for canal in PLATAFORMES:
         bloc = posts.get(canal) or {}
         text = bloc.get("text", "")
         if not text:
             print("✗ {}: post sense text".format(canal))
             errors += 1
+            items.append({"canal": canal, "text": "", "ok": False, "msg": "post sense text"})
             continue
 
         imatge = bloc.get("imatge") or posts.get("tema")  # reserva per a la imatge
@@ -100,6 +102,20 @@ def executa(data_override=None):
         else:
             errors += 1
             print("✗ {}: {}".format(canal, res.get("error", "error desconegut")))
+        items.append({
+            "canal": canal,
+            "text": text,
+            "imatge_url": res.get("imatge_url"),
+            "ok": bool(res.get("ok")),
+            "msg": res.get("error") or res.get("msg", ""),
+        })
+
+    # Resum per correu: que en Sergi vegi els posts de demà abans de les 7:00
+    try:
+        from correu import envia_resum
+        envia_resum(data_str, items)
+    except Exception as e:
+        print("[mati] no s'ha pogut enviar el resum per correu: {}".format(e))
 
     if errors:
         print("Acabat amb {} error(s). Revisa els missatges de dalt.".format(errors))

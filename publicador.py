@@ -472,7 +472,8 @@ def publica_post(canal, text, imatge=None, data_str=None, quan=None):
             )
         else:
             msg = "A la cua de Buffer{} — revisa'l a buffer.com.".format(amb_imatge)
-        return {"ok": True, "msg": msg, "id": post.get("id", "")}
+        return {"ok": True, "msg": msg, "id": post.get("id", ""),
+                "imatge_url": url_imatge if input_data.get("assets") else None}
 
     if cp.get("message"):
         return {"ok": False, "error": "[{}] {}".format(cp.get("__typename", "Error"), cp["message"])}
