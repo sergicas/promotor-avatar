@@ -40,3 +40,6 @@ jobs:
         run: python -u mati.py "${{ github.event.inputs.dia }}"
         # No es desa cap estat: l'anti-duplicats es fa contra Buffer (la font
         # real), així que no cal (ni convé) guardar un fitxer d'estat al repo.
+      - name: Podar imatges antigues (neteja automàtica)
+        if: always()
+        run: python -u poda_imatges.py
