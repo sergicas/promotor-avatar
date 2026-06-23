@@ -1,0 +1,8 @@
+# Mai pujar claus ni fitxers locals
+dades/keys.json
+dades/canals.json
+venv/
+__pycache__/
+*.pyc
+imatges_generades/
+.DS_Store

@@ -1,0 +1,41 @@
+name: Posts diaris a Buffer
+
+# S'executa als servidors de GitHub (no depèn del Mac de l'usuari).
+on:
+  schedule:
+    # 09:00 UTC ≈ 11:00 hora de Madrid. Prepara els posts de DEMÀ i els
+    # programa a Buffer per a les 7:00 del seu dia. L'hora exacta d'execució
+    # no és crítica: només cal que sigui el dia abans.
+    - cron: '0 9 * * *'
+  workflow_dispatch: {}   # permet llançar-ho a mà des de GitHub (per provar)
+
+permissions:
+  contents: write          # per desar l'estat anti-duplicats al repositori
+
+concurrency:
+  group: posts-diaris      # mai dues execucions alhora
+  cancel-in-progress: false
+
+jobs:
+  preparar:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Madrid
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install --quiet -r requirements.txt
+      - name: Preparar i programar els posts de demà
+        run: python -u mati.py
+      - name: Desar l'estat (anti-duplicats)
+        if: always()
+        run: |
+          git config user.name "Promotor Avatar bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dades/publicats.json dades/esborranys.json 2>/dev/null || true
+          git commit -m "estat: posts del $(date +%F)" || echo "res nou a desar"
+          git push || echo "push omès"
