@@ -7,7 +7,12 @@ on:
     # programa a Buffer per a les 7:00 del seu dia. L'hora exacta d'execució
     # no és crítica: només cal que sigui el dia abans.
     - cron: '0 9 * * *'
-  workflow_dispatch: {}   # permet llançar-ho a mà des de GitHub (per provar)
+  workflow_dispatch:       # permet llançar-ho a mà des de GitHub (per provar)
+    inputs:
+      dia:
+        description: "Dia concret a preparar (YYYY-MM-DD). Buit = comportament normal."
+        required: false
+        default: ""
 
 permissions:
   contents: write          # per desar l'estat anti-duplicats al repositori
@@ -30,7 +35,7 @@ jobs:
           python-version: '3.11'
       - run: pip install --quiet -r requirements.txt
       - name: Preparar i programar els posts de demà
-        run: python -u mati.py
+        run: python -u mati.py "${{ github.event.inputs.dia }}"
       - name: Desar l'estat (anti-duplicats)
         if: always()
         run: |

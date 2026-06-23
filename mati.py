@@ -65,9 +65,11 @@ def espera_xarxa():
     return False
 
 
-def executa():
-    dema = datetime.date.today() + datetime.timedelta(days=1)
-    data_str = dema.isoformat()
+def executa(data_override=None):
+    if data_override:
+        data_str = data_override
+    else:
+        data_str = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
     ara = datetime.datetime.now().strftime("%d-%m-%Y %H:%M")
     print("── Promotor Avatar · ara: {} · preparant els posts del {} ──".format(ara, data_str))
 
@@ -109,24 +111,28 @@ def executa():
     return 0
 
 
-def executa_amb_reintents():
+def executa_amb_reintents(data_override=None):
     """Executa la preparació del matí; si acaba amb errors, ho torna a provar
-    sencer fins a REINTENTS_MATI vegades (els canals ja fets se salten)."""
-    # Freqüència: un post cada dos dies (reorientació 2026-06). El launchd
-    # segueix corrent cada matí, però només es preparen posts quan la data
-    # del post (demà) cau en dia parell del calendari. Els altres dies, la
-    # passada del matí no fa res (i així no cal ni esperar la xarxa).
-    dema = datetime.date.today() + datetime.timedelta(days=1)
-    if dema.toordinal() % 2 != 0:
-        print("Avui no toca preparar posts: surten cada dos dies. "
-              "Proper dia de publicació: {}.".format(
-                  (dema + datetime.timedelta(days=1)).isoformat()))
-        return 0
+    sencer fins a REINTENTS_MATI vegades (els canals ja fets se salten).
+
+    data_override: si es passa una data ('YYYY-MM-DD'), es preparen els posts
+    d'aquell dia concret i se salta la comprovació de cadència (per provar o
+    rescatar un dia a mà)."""
+    if not data_override:
+        # Freqüència: un post cada dos dies (reorientació 2026-06). Només es
+        # preparen posts quan la data del post (demà) cau en dia parell del
+        # calendari. Els altres dies, la passada no fa res.
+        dema = datetime.date.today() + datetime.timedelta(days=1)
+        if dema.toordinal() % 2 != 0:
+            print("Avui no toca preparar posts: surten cada dos dies. "
+                  "Proper dia de publicació: {}.".format(
+                      (dema + datetime.timedelta(days=1)).isoformat()))
+            return 0
     # Esperar que el Wi-Fi estigui realment connectat abans de començar
     # (el Mac s'acaba de despertar i la xarxa pot trigar uns segons/minuts).
     espera_xarxa()
     for intent in range(1, REINTENTS_MATI + 1):
-        codi = executa()
+        codi = executa(data_override)
         if codi == 0:
             return 0
         if intent < REINTENTS_MATI:
@@ -140,4 +146,7 @@ def executa_amb_reintents():
 
 
 if __name__ == "__main__":
-    sys.exit(executa_amb_reintents())
+    # Argument opcional: una data 'YYYY-MM-DD' per forçar la preparació
+    # d'aquell dia (salta la cadència). Sense argument, comportament normal.
+    forcat = sys.argv[1].strip() if len(sys.argv) > 1 and sys.argv[1].strip() else None
+    sys.exit(executa_amb_reintents(forcat))
