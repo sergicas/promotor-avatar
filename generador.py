@@ -97,10 +97,13 @@ LLIBRES_ROTATIU = [
 ]
 
 
-# Es posa amb https:// perquè X i LinkedIn el converteixin en enllaç CLICABLE
+# X i LinkedIn: amb https:// perquè surti com a enllaç CLICABLE
 # (el domini nu "sergicastillo.com" sovint no s'enllaça sol).
 WEB = "https://sergicastillo.com"
 WEB_DOMINI = "sergicastillo.com"
+# Instagram: els enllaços del text NO són clicables; per això es menciona la
+# bio (on sí hi ha l'enllaç actiu) i no es posa https:// (quedaria lleig i inert).
+WEB_IG = "sergicastillo.com · enllaç a la bio"
 
 # Es manté el peu amb la web al final de cada post (decisió Sergi 2026-06-20).
 # Posa-ho a False si algun dia no vols el peu sergicastillo.com.
@@ -116,25 +119,32 @@ def _normalitza_web(t):
 
 
 def _text_amb_web(text, plataforma):
-    """Retorna el text garantint que inclou la web com a enllaç clicable
-    (https://). Respecta el bloc d'hashtags d'Instagram."""
-    t = _normalitza_web((text or "").rstrip())
-    if WEB_DOMINI in t.lower():
-        return t  # ja hi és (i ara amb https://)
-    if plataforma == "twitter":
-        return t + " " + WEB
+    """Retorna el text garantint que inclou la web. A X i LinkedIn, com a
+    enllaç clicable (https://). A Instagram, com a "sergicastillo.com · enllaç
+    a la bio" (perquè a IG els enllaços del text no són clicables)."""
+    t = (text or "").rstrip()
+
     if plataforma == "instagram":
-        # Inserir la web just abans del bloc final d'hashtags, si n'hi ha
+        # Separar el bloc final d'hashtags
         linies = t.split("\n")
         i = len(linies)
         while i > 0 and (not linies[i - 1].strip() or linies[i - 1].lstrip().startswith("#")):
             i -= 1
-        if i < len(linies):
-            cos = "\n".join(linies[:i]).rstrip()
-            hashtags = "\n".join(linies[i:]).strip()
-            return cos + "\n\n" + WEB + "\n\n" + hashtags
-        return t + "\n\n" + WEB
-    return t + "\n\n" + WEB
+        cos = "\n".join(linies[:i])
+        hashtags = "\n".join(linies[i:]).strip()
+        # Treure qualsevol forma de web/coletilla ja present, per no duplicar
+        cos = re.sub(r"https?://sergicastillo\.com", "", cos, flags=re.I)
+        cos = re.sub(r"\(?\s*enllaç a la bio\s*\)?", "", cos, flags=re.I)
+        cos = re.sub(r"sergicastillo\.com", "", cos, flags=re.I)
+        cos = "\n".join(l.rstrip(" ·—-:\t") for l in cos.split("\n")).rstrip()
+        bloc = cos + "\n\n" + WEB_IG
+        return bloc + ("\n\n" + hashtags if hashtags else "")
+
+    # X i LinkedIn: enllaç clicable amb https://
+    t = _normalitza_web(t)
+    if WEB_DOMINI in t.lower():
+        return t  # ja hi és (i ara amb https://)
+    return (t + " " + WEB) if plataforma == "twitter" else (t + "\n\n" + WEB)
 
 
 def afegeix_web_a_posts(posts):
@@ -398,7 +408,9 @@ ESTIL — NORMES DURES (un post que en violi una és un mal post):
 - Millor una observació petita i certa que una gran frase buida.
 - TEST DEL MÒBIL: si un desconegut ho llegís al metro, ho hauria d'entendre de seguida i pensar "sí, és veritat" o "no hi havia caigut".
 
-FINAL: tots els posts inclouen "https://sergicastillo.com" al final del text (AMB https://, perquè surti com a enllaç clicable; sense punt final). A Instagram, "https://sergicastillo.com" va en línia pròpia just ABANS del bloc d'hashtags.
+FINAL:
+- A X i LinkedIn: acaba amb "https://sergicastillo.com" (AMB https://, perquè surti com a enllaç clicable; sense punt final).
+- A Instagram: acaba amb "sergicastillo.com · enllaç a la bio" en línia pròpia just ABANS del bloc d'hashtags (a Instagram els enllaços del text no són clicables, per això s'envia a la bio).
 
 DATA: {data}
 
