@@ -97,23 +97,31 @@ LLIBRES_ROTATIU = [
 ]
 
 
-WEB = "sergicastillo.com"
+# Es posa amb https:// perquè X i LinkedIn el converteixin en enllaç CLICABLE
+# (el domini nu "sergicastillo.com" sovint no s'enllaça sol).
+WEB = "https://sergicastillo.com"
+WEB_DOMINI = "sergicastillo.com"
 
 # Es manté el peu amb la web al final de cada post (decisió Sergi 2026-06-20).
 # Posa-ho a False si algun dia no vols el peu sergicastillo.com.
 INCLOURE_WEB = True
 
 
+def _normalitza_web(t):
+    """Converteix qualsevol 'sergicastillo.com' (nu o amb http) en
+    'https://sergicastillo.com', perquè surti com a enllaç clicable."""
+    t = re.sub(r"https?://sergicastillo\.com", WEB_DOMINI, t, flags=re.I)
+    t = re.sub(r"sergicastillo\.com", WEB, t, flags=re.I)
+    return t
+
+
 def _text_amb_web(text, plataforma):
-    """Retorna el text garantint que inclou la web.
-    Respecta el límit de X (280) i el bloc d'hashtags d'Instagram."""
-    t = (text or "").rstrip()
-    if WEB.lower() in t.lower():
-        return t
+    """Retorna el text garantint que inclou la web com a enllaç clicable
+    (https://). Respecta el bloc d'hashtags d'Instagram."""
+    t = _normalitza_web((text or "").rstrip())
+    if WEB_DOMINI in t.lower():
+        return t  # ja hi és (i ara amb https://)
     if plataforma == "twitter":
-        maxim = 280 - len(WEB) - 1
-        if len(t) > maxim:
-            t = t[: maxim - 1].rstrip() + "…"
         return t + " " + WEB
     if plataforma == "instagram":
         # Inserir la web just abans del bloc final d'hashtags, si n'hi ha
@@ -390,7 +398,7 @@ ESTIL — NORMES DURES (un post que en violi una és un mal post):
 - Millor una observació petita i certa que una gran frase buida.
 - TEST DEL MÒBIL: si un desconegut ho llegís al metro, ho hauria d'entendre de seguida i pensar "sí, és veritat" o "no hi havia caigut".
 
-FINAL: tots els posts inclouen "sergicastillo.com" al final del text (sense https, sense punt final). A Instagram, "sergicastillo.com" va en línia pròpia just ABANS del bloc d'hashtags.
+FINAL: tots els posts inclouen "https://sergicastillo.com" al final del text (AMB https://, perquè surti com a enllaç clicable; sense punt final). A Instagram, "https://sergicastillo.com" va en línia pròpia just ABANS del bloc d'hashtags.
 
 DATA: {data}
 
