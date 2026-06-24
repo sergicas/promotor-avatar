@@ -93,16 +93,26 @@ def _buffer_graphql(query, variables=None):
 
 
 def _org_id():
-    """Retorna l'organization id del compte Buffer actual (cachejat)."""
+    """Retorna l'organization id del compte Buffer (cachejat).
+
+    Buffer va restringir l'accés al camp `currentOrganization` (FORBIDDEN),
+    però la llista `organizations` segueix accessible amb el mateix id. Per
+    això es demanen tots dos i s'usa el que funcioni (currentOrganization si
+    hi és; si no, la primera de organizations)."""
     global _org_id_cache
     if _org_id_cache:
         return _org_id_cache
-    r = _buffer_graphql("{ account { currentOrganization { id } } }")
-    try:
-        _org_id_cache = r["data"]["account"]["currentOrganization"]["id"]
-        return _org_id_cache
-    except (KeyError, TypeError):
-        return ""
+    r = _buffer_graphql("{ account { currentOrganization { id } organizations { id } } }")
+    acc = (r.get("data") or {}).get("account") or {}
+    org = (acc.get("currentOrganization") or {}).get("id")
+    if not org:
+        orgs = acc.get("organizations") or []
+        if orgs:
+            org = orgs[0].get("id")
+    if org:
+        _org_id_cache = org
+        return org
+    return ""
 
 
 def get_canals(forcar_refresc=False):
