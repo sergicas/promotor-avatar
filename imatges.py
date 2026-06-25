@@ -36,10 +36,12 @@ ENDPOINT_IMAGEN = (
     + MODEL_IMAGEN + ":predict"
 )
 
-# Estil visual comú perquè el feed tingui coherència de marca
+# Estil visual comú perquè el feed tingui coherència de marca.
+# Sense persones (les figures humanes provoquen censura o imatges genèriques),
+# però pintant FIDELMENT l'escena descrita (objectes, natura, llocs).
 ESTIL_BASE = (
     "photorealistic, soft natural lighting, warm tones, literary mood, "
-    "subtle composition, no people unless specified, no text overlay"
+    "no people, no humans, no human figures, no faces, no hands, no text overlay"
 )
 
 
@@ -58,20 +60,32 @@ def _tradueix_a_prompt(descripcio_ca):
             "gemini-2.5-flash:generateContent?key=" + api_key
         )
         prompt = (
-            "Tradueix aquesta descripció catalana d'una imatge a un prompt "
-            "en anglès per a un generador d'imatges (Imagen 4). Format: "
-            "una frase descriptiva de 15-25 paraules, sense puntuació final, "
-            "sense termes tècnics, sense 'a photo of'. Pensa visualment: "
-            "objecte, llum, atmosfera. Retorna NOMÉS la frase.\n\n"
+            "Converteix aquesta descripció catalana en un prompt en anglès per a "
+            "un generador d'imatges (Imagen 4). Pinta FIDELMENT l'escena descrita "
+            "(els objectes, la natura, el lloc i l'atmosfera). REGLA ABSOLUTA: "
+            "l'escena NO pot contenir cap persona, ni mans, ni cares, ni siluetes "
+            "ni figures humanes. Si la descripció menciona una persona o una part "
+            "del cos, substitueix-la per l'OBJECTE simbòlic central de l'escena "
+            "(p. ex. 'una noia amb ales de papallona' → 'unes ales de papallona "
+            "iridescents'; 'una mà robòtica' → 'un braç mecànic de metall'). "
+            "Conserva la resta de l'escena tal com es descriu. Format: una frase "
+            "descriptiva de 15-25 paraules, sense puntuació final, sense 'a photo of'. "
+            "Retorna NOMÉS la frase.\n\n"
             "Descripció: " + desc
         )
         r = requests.post(
             url,
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.5, "maxOutputTokens": 100},
+                "generationConfig": {
+                    "temperature": 0.5,
+                    "maxOutputTokens": 200,
+                    # Desactivar el "thinking": si no, es menja tot el pressupost
+                    # de paraules i la resposta surt truncada (p. ex. només "Close").
+                    "thinkingConfig": {"thinkingBudget": 0},
+                },
             },
-            timeout=15,
+            timeout=20,
         )
         if r.status_code == 200:
             data = r.json()

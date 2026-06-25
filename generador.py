@@ -421,9 +421,15 @@ Genera 3 posts per a avui. LONGITUDS (límits ESTRICTES — passar-se'n és inva
 
 IMATGES: cada post (linkedin, twitter, instagram) porta el seu camp "imatge": una
 descripció visual concreta en català (15-25 paraules) de l'escena per a la imatge.
-Un objecte, una llum, una atmosfera; sense persones reconeixibles i SENSE text dins
-la imatge. MOLT IMPORTANT: les TRES descripcions han de ser ESCENES DIFERENTS entre
-elles (objectes i enquadraments distints), encara que totes evoquin el tema del dia.
+REGLA CABDAL: descriu NOMÉS objectes, símbols, llocs o elements de la natura
+relacionats amb el contingut del post (un llibre obert, unes ales de papallona, una
+finestra amb pluja, un rellotge antic, un riu, una ploma, un mapa…). MAI persones,
+ni siluetes humanes, ni cares, ni mans, ni personatges — els generadors d'imatge els
+censuren o els fan genèrics, i la imatge acaba sense relació amb el text. SENSE text
+dins la imatge. La imatge ha d'evocar DE QUÈ VA el post (si parla d'un llibre, un
+objecte simbòlic d'aquell llibre). MOLT IMPORTANT: les TRES descripcions han de ser
+ESCENES DIFERENTS entre elles (objectes i enquadraments distints), però totes lligades
+al tema del dia.
 Mai descriguis la mateixa escena dues vegades.
 
 Respon ÚNICAMENT amb JSON vàlid, sense cap text addicional, en aquest format exacte:
