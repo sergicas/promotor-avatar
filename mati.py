@@ -23,6 +23,7 @@ import time
 
 from promotor import PLATAFORMES, _ja_publicat, _marcar_publicat, _obtenir_posts_dia
 from publicador import publica_post
+from tiktok import publica_tiktok
 
 # Si una passada acaba amb errors (p. ex. una caiguda de xarxa més llarga),
 # es torna a provar sencera. Com que els canals ja fets se salten, repetir
@@ -109,6 +110,27 @@ def executa(data_override=None):
             "ok": bool(res.get("ok")),
             "msg": res.get("error") or res.get("msg", ""),
         })
+
+    # TikTok: publica directament (DIRECT_POST) ara mateix, amb el vídeo de Veo 2.
+    # Usa el text d'Instagram (el més visual) com a peu de vídeo.
+    ig_bloc = posts.get("instagram") or {}
+    ig_text = ig_bloc.get("text", "")
+    imatge_ig = ig_bloc.get("imatge") or posts.get("tema") or ""
+    if ig_text:
+        print("── TikTok ──")
+        res_tt = publica_tiktok(ig_text, imatge_ig, data_str)
+        if res_tt.get("ok"):
+            print("✓ tiktok: {}".format(res_tt.get("msg", "publicat")))
+        else:
+            print("✗ tiktok: {}".format(res_tt.get("error", "error desconegut")))
+        items.append({
+            "canal": "tiktok",
+            "text": ig_text,
+            "ok": bool(res_tt.get("ok")),
+            "msg": res_tt.get("error") or res_tt.get("msg", ""),
+        })
+    else:
+        print("✗ tiktok: sense text d'Instagram per generar el vídeo")
 
     if errors:
         print("Acabat amb {} error(s). Revisa els missatges de dalt.".format(errors))
