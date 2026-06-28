@@ -29,25 +29,36 @@ def envia_resum(data_str, items):
     if not items:
         return False
 
-    linies = [
-        "Els posts del {} ja són programats a Buffer per a les 7:00 del matí.".format(data_str),
-        "",
-        "Si vols revisar-los, retocar-los o aturar-ne algun, entra a Buffer:",
-        BUFFER_WEB,
-        "",
-        "─────────────────────────────",
-        "",
-    ]
-    for it in items:
-        estat = "✓ programat" if it.get("ok") else "✗ NO programat ({})".format(it.get("msg", "error"))
-        linies.append("【 {} 】 {}".format(it["canal"].upper(), estat))
-        if it.get("text"):
-            linies.append(it["text"])
-        if it.get("imatge_url"):
-            linies.append("Imatge: {}".format(it["imatge_url"]))
-        linies.append("")
-        linies.append("─────────────────────────────")
-        linies.append("")
+    items_buffer = [it for it in items if it.get("canal") != "tiktok"]
+    item_tiktok = next((it for it in items if it.get("canal") == "tiktok"), None)
+
+    linies = ["Els posts del {} ja estan preparats.".format(data_str), ""]
+
+    if items_buffer:
+        linies += [
+            "── Buffer (X · LinkedIn · Instagram) ──",
+            "Programats per a les 7:00 del matí. Revisa'ls o atura'ls:",
+            BUFFER_WEB,
+            "",
+        ]
+        for it in items_buffer:
+            estat = "✓ programat" if it.get("ok") else "✗ NO programat ({})".format(it.get("msg", "error"))
+            linies.append("【 {} 】 {}".format(it["canal"].upper(), estat))
+            if it.get("text"):
+                linies.append(it["text"])
+            if it.get("imatge_url"):
+                linies.append("Imatge: {}".format(it["imatge_url"]))
+            linies += ["", "─────────────────────────────", ""]
+
+    if item_tiktok:
+        estat_tt = (
+            "✓ publicat (vídeo Veo 2, directe)" if item_tiktok.get("ok")
+            else "✗ NO publicat — {}".format(item_tiktok.get("msg", "error"))
+        )
+        linies += ["── TikTok ──", estat_tt]
+        if item_tiktok.get("text"):
+            linies.append(item_tiktok["text"])
+        linies += ["", "─────────────────────────────", ""]
 
     msg = EmailMessage()
     msg["From"] = "Promotor Avatar <{}>".format(ADRECA)
