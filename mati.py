@@ -113,10 +113,14 @@ def executa(data_override=None):
 
     # TikTok: publica directament (DIRECT_POST) ara mateix, amb el vídeo de Veo 2.
     # Usa el text d'Instagram (el més visual) com a peu de vídeo.
+    # Els dies d'Arrel (campanya='arrel') NO van a TikTok de moment: Arrel només
+    # es promociona a X, LinkedIn i Instagram (decisió 2026-07-01).
     ig_bloc = posts.get("instagram") or {}
     ig_text = ig_bloc.get("text", "")
     imatge_ig = ig_bloc.get("imatge") or posts.get("tema") or ""
-    if ig_text:
+    if posts.get("campanya") == "arrel":
+        print("── TikTok omès (dia Arrel: només X/LinkedIn/Instagram) ──")
+    elif ig_text:
         print("── TikTok ──")
         res_tt = publica_tiktok(ig_text, imatge_ig, data_str)
         if res_tt.get("ok"):

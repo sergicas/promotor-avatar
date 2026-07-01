@@ -62,9 +62,6 @@ CATÀLEG DE LLIBRES DE SERGI CASTILLO LAPEIRA:
 - Ètica i estètica de l'instant (assaig): L'ara etern i efímer.
   CAT: amazon.es/dp/B0DP62B81G
 
-- Diálogos filosóficos con mi amigo Pi (assaig ES): Debat filosòfic amb una IA.
-  ES: amazon.es/dp/B0D25D9QRH
-
 PROJECTES ACTIUS:
 - El Bon Diari (bondiari.com) — periodisme constructiu
 - Curs Filosofia i IA (filoia.netlify.app)
@@ -85,6 +82,9 @@ MODES = [
 ]
 
 # Indicació de quin llibre usar en mode 1 (rota per dia de l'any)
+# NOTA: "Diálogos filosóficos con mi amigo Pi" està EN PAUSA (decisió usuari
+# 2026-07-01). Per tornar-lo a promocionar, afegeix-lo de nou aquí i al
+# CATALEG_LLIBRES de dalt.
 LLIBRES_ROTATIU = [
     "Nara",
     "La vida d'en George",
@@ -93,7 +93,6 @@ LLIBRES_ROTATIU = [
     "Contes a la vora del gel",
     "Ànima Material",
     "Ètica i estètica de l'instant",
-    "Diálogos filosóficos con mi amigo Pi",
 ]
 
 
@@ -259,7 +258,7 @@ PREGUNTES_AVATAR = [
     "Quina és la teva posició avui sobre la relació entre literatura i "
     "intel·ligència artificial? Una idea concreta i discutible, en primera "
     "persona, 4-6 frases. Pren partit clarament: res de «d'una banda… de "
-    "l'altra». Si pots, lliga-ho amb els teus diàlegs amb Pi.",
+    "l'altra».",
 
     "Tria una idea central de la teva obra «{llibre}» i defensa-la en 4-6 "
     "frases, amb un exemple concret del llibre (en tens el text al corpus). "
@@ -522,6 +521,203 @@ def _violacions_estil(posts):
     return v
 
 
+# ===========================================================================
+# CARRIL ARREL — promoció de l'app Arrel (longevitat) en dies alterns
+# ===========================================================================
+# Arrel NO és un llibre ni surt de l'Avatar: és un producte propi (app gratuïta
+# de longevitat). En els dies de publicació alterns, els 3 posts parlen d'Arrel
+# amb la seva veu (anti-soroll) i el seu enllaç (App Store), no de la web dels
+# llibres. Decisió usuari 2026-07-01: 1 de cada 2 publicacions és d'Arrel; CTA =
+# App Store (baixada directa).
+
+# Enllaç curt i universal a la fitxa de l'App Store (sense codi de país).
+ARREL_URL = "https://apps.apple.com/app/id6758808269"
+
+# A Instagram els enllaços del text no són clicables i la bio és de
+# sergicastillo.com; per això a IG es diu com trobar l'app (és cercable).
+ARREL_CTA_IG = "Arrel · gratis a l'App Store (cerca «Arrel»)"
+
+# Hashtags propis d'Arrel (longevitat/salut), NO els de llibres.
+ARREL_HASHTAGS = "#Arrel #longevitat #envellirbé #salut #hàbits #benestar #vitalitat"
+
+ARREL_BRIEF = """QUÈ ÉS ARREL (el producte que promocionem avui):
+Arrel és una app gratuïta (sense pagaments) amb un únic objectiu: frenar l'envelliment al màxim.
+NO és una app de fitness, ni de motivació, ni de «benestar» superficial.
+Premissa: l'envelliment s'accelera allà on hi ha rigidesa, evitació i repetició.
+Arrel intervé en les cinc àrees on el desgast és més evident:
+  1. Deteriorament funcional del cos.
+  2. Rigidesa cognitiva.
+  3. Estrès crònic.
+  4. Aïllament relacional.
+  5. Estancament identitari.
+Com funciona: cicles curts d'observació i acció. Detecta on t'estanques, redueix el soroll i
+aplica la fricció mínima necessària per recuperar flexibilitat i moviment. Sense notificacions
+buides, sense tecnicismes, sense promeses falses de felicitat. Només criteri i acció.
+Idea força: «Envellir és inevitable, oxidar-se és opcional.»
+"""
+
+# Angles que roten per dia d'Arrel (perquè no repeteixi sempre el mateix).
+ARREL_MODES = [
+    "La idea central d'Arrel: envellir és inevitable, oxidar-se és opcional. Per què cap app de benestar ho mira així.",
+    "UNA de les cinc àrees on Arrel actua (el cos, la rigidesa cognitiva, l'estrès, l'aïllament o l'estancament): què és i per què importa.",
+    "El contrast amb el soroll del benestar de moda i el biohacking: res de notificacions buides, només criteri i acció.",
+    "Com treballa Arrel per dins: cicles curts d'observació i acció, la fricció mínima per tornar a moure't.",
+    "Una observació certa sobre com la rigidesa i la repetició envelleixen, i com Arrel hi intervé.",
+]
+
+
+def _es_dia_arrel(data):
+    """En els dies de publicació (la màquina publica en ordinal parell), la
+    meitat es dediquen a Arrel, alternant literatura / Arrel. True = dia Arrel."""
+    return (data.toordinal() // 2) % 2 == 1
+
+
+def _get_mode_arrel(data):
+    """Angle d'Arrel per a la data (rota per dia de publicació)."""
+    idx = (data.toordinal() // 2) % len(ARREL_MODES)
+    return idx, ARREL_MODES[idx]
+
+
+def _construir_prompt_arrel(data):
+    """Prompt per als posts d'Arrel: mateixa veu sòbria i impersonal que la
+    resta, però promocionant l'app (no els llibres), amb CTA a l'App Store."""
+    idx_mode, nom_mode = _get_mode_arrel(data)
+    data_fmt = data.strftime("%A %d de %B de %Y")
+
+    prompt = """Ets el creador de contingut de l'app ARREL per a xarxes socials (LinkedIn, X i Instagram).
+Escrius de manera clara, sòbria i directa. Mai com un anunci cridaner ni com un gurú del benestar.
+
+OBJECTIU: que la gent tingui ganes de baixar Arrel, explicant amb honestedat què fa i per què és diferent.
+
+{brief}
+
+ANGLE D'AVUI (mode {idx}): {mode}
+
+TO I LLENGUATGE (la part més important):
+- Llenguatge planer i de cada dia. Frases curtes. Paraules de tota la vida.
+- RES de registre acadèmic ni de màrqueting inflat. RES de tecnicismes ni paraules rebuscades.
+- Gens solemne. Ni autoajuda de manual ni frase de calendari. Res de promeses de felicitat.
+- To d'Arrel: anti-soroll, honest, amb criteri. Ven sense enganyar ni exagerar.
+- VEU IMPERSONAL — REGLA CABDAL: CAP primera persona, ni biogràfica ni de pensament. PROHIBIT "jo", i els verbs en primera persona "crec", "penso", "opino", "defenso", "sento"..., i els possessius "el meu", "la meva", "els meus", "les meves". Les idees s'afirmen DIRECTAMENT. Pots adreçar-te al lector de "tu".
+
+ESTIL — NORMES DURES (un post que en violi una és un mal post):
+- Una idea per post. A la PRIMERA frase ja s'ha de saber de què parles.
+- Màxim UNA metàfora per post, i senzilla.
+- Màxim UNA pregunta per post, només al final i només si és de veritat. Cap pregunta retòrica.
+- No facis enumeracions de tres. No comencis amb gerundi ("Pensant...", "Mirant...").
+- La fórmula "no és X, sinó Y": màxim UNA per post, i només si diu alguna cosa de debò.
+- PROHIBIT usar: "mirall", "essència", "ànima", "fibra", "vertigen", "implacable", "efímer", "etern", "ens travessa", "es desplega", "es difumina", "es dilueix", "teló de fons".
+- No prometis resultats mèdics ni curacions. Arrel ajuda a mantenir flexibilitat i moviment; no cura ni allarga la vida de forma garantida.
+- Millor una observació petita i certa que una gran frase buida.
+- TEST DEL MÒBIL: si un desconegut ho llegís al metro, ho hauria d'entendre de seguida i pensar "sí, és veritat" o "no hi havia caigut".
+
+FINAL (crida a l'acció cap a l'App Store):
+- A X i LinkedIn: acaba amb "{url}" (l'enllaç de l'App Store, sense punt final).
+- A Instagram: acaba amb "{cta_ig}" en línia pròpia just ABANS del bloc d'hashtags (a Instagram els enllaços del text no són clicables).
+
+DATA: {data}
+
+Genera 3 posts per a avui. LONGITUDS (límits ESTRICTES — passar-se'n és invalidar el post):
+- twitter: màx 240 caràcters, sense hashtags, una sola idea clara
+- linkedin: 40-70 paraules, sobri i directe, gens corporatiu
+- instagram: 30-60 paraules + aquests hashtags EXACTES al final, en línia nova: {hashtags}
+
+IMATGES: cada post (linkedin, twitter, instagram) porta el seu camp "imatge": una
+descripció visual concreta en català (15-25 paraules) de l'escena per a la imatge.
+REGLA CABDAL: descriu NOMÉS objectes, símbols, llocs o elements de la natura que evoquin
+vitalitat, arrels, moviment, calma o el pas del temps (una arrel forta a la terra, un arbre
+vell i sa, aigua que corre, una pedra polida pel riu, llum del matí en un bosc, un camí
+obert…). MAI persones, ni siluetes humanes, ni cares, ni mans — els generadors d'imatge els
+censuren o els fan genèrics. SENSE text dins la imatge. Les TRES descripcions han de ser
+ESCENES DIFERENTS entre elles, però totes lligades a l'angle d'avui.
+
+Respon ÚNICAMENT amb JSON vàlid, sense cap text addicional, en aquest format exacte:
+{{
+  "linkedin": {{
+    "text": "...",
+    "imatge": "descripció visual de l'escena (diferent de les altres dues)"
+  }},
+  "twitter": {{
+    "text": "...",
+    "imatge": "descripció visual de l'escena (diferent de les altres dues)"
+  }},
+  "instagram": {{
+    "text": "...",
+    "imatge": "descripció visual de l'escena (diferent de les altres dues)"
+  }},
+  "mode": "nom curt de l'angle (1-5 paraules)",
+  "tema": "resum breu de l'angle d'avui (1 frase)"
+}}""".format(
+        brief=ARREL_BRIEF,
+        data=data_fmt,
+        idx=idx_mode,
+        mode=nom_mode,
+        url=ARREL_URL,
+        cta_ig=ARREL_CTA_IG,
+        hashtags=ARREL_HASHTAGS,
+    )
+    return prompt
+
+
+def _finalitza_arrel(posts):
+    """Xarxa de seguretat: garanteix l'enllaç de l'App Store a X/LinkedIn i el
+    CTA + hashtags d'Arrel a Instagram, per si el model se'ls deixa."""
+    for plataforma in ["linkedin", "twitter"]:
+        bloc = posts.get(plataforma)
+        if isinstance(bloc, dict) and bloc.get("text"):
+            t = bloc["text"].rstrip()
+            if "apps.apple.com" not in t.lower():
+                sep = " " if plataforma == "twitter" else "\n\n"
+                bloc["text"] = t + sep + ARREL_URL
+
+    ig = posts.get("instagram")
+    if isinstance(ig, dict) and ig.get("text"):
+        t = ig["text"].rstrip()
+        if "#" not in t:
+            t = t + "\n\n" + ARREL_HASHTAGS
+        if "app store" not in t.lower():
+            # Inserir el CTA just abans del primer hashtag
+            linies = t.split("\n")
+            i = len(linies)
+            while i > 0 and (not linies[i - 1].strip() or linies[i - 1].lstrip().startswith("#")):
+                i -= 1
+            cos = "\n".join(linies[:i]).rstrip()
+            hashtags = "\n".join(linies[i:]).strip()
+            t = cos + "\n\n" + ARREL_CTA_IG + ("\n\n" + hashtags if hashtags else "")
+        ig["text"] = t
+
+
+def _genera_posts_arrel(client, data):
+    """Genera els 3 posts d'Arrel amb el mateix control de qualitat que els
+    literaris (fins a 3 intents, es queda el més net), però NO afegeix la web
+    dels llibres ni els hashtags de llibres."""
+    prompt = _construir_prompt_arrel(data)
+    millor = None
+    millor_violacions = None
+    for intent in range(3):
+        resultat = _intent_generacio(client, prompt)
+        if "error" in resultat:
+            millor = resultat
+            break
+        violacions = _violacions_estil(resultat)
+        if not violacions:
+            millor, millor_violacions = resultat, []
+            break
+        print("[generador][arrel] Intent {}: {} violacions — {}".format(
+            intent + 1, len(violacions), "; ".join(violacions)))
+        if millor is None or "error" in millor or len(violacions) < len(millor_violacions):
+            millor, millor_violacions = resultat, violacions
+
+    if millor is None:
+        return {"error": "Gemini no ha retornat res (Arrel) en cap dels 3 intents."}
+    if "error" in millor:
+        return millor
+    _finalitza_arrel(millor)
+    # Marca perquè la resta del sistema no hi afegeixi la web dels llibres.
+    millor["campanya"] = "arrel"
+    return millor
+
+
 def genera_posts_dia(data_str=None):
     """
     Genera els 3 posts del dia via Gemini, amb control de qualitat:
@@ -559,6 +755,11 @@ def genera_posts_dia(data_str=None):
         client = genai.Client(api_key=api_key)
     except Exception as e:
         return {"error": "Error configurant Gemini: {}".format(e)}
+
+    # CARRIL ARREL: en els dies alterns, els posts promocionen l'app Arrel
+    # (longevitat), no els llibres. Té veu, brief i enllaç (App Store) propis.
+    if _es_dia_arrel(data):
+        return _genera_posts_arrel(client, data)
 
     # 1) Contingut general: els posts ja no surten del corpus personal ni del
     #    catàleg de llibres. Es generen directament a partir del tema del dia.

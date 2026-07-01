@@ -83,8 +83,9 @@ def _obtenir_posts_dia(data_str, forcar=False):
 
     if not forcar and data_str in esborranys:
         posts = esborranys[data_str]
-        # Reparació de posts en caché d'abans: garantir la web a tots els textos
-        if afegeix_web_a_posts(posts):
+        # Reparació de posts en caché d'abans: garantir la web a tots els textos.
+        # Els posts d'Arrel (campanya='arrel') NO porten la web dels llibres.
+        if posts.get("campanya") != "arrel" and afegeix_web_a_posts(posts):
             _guardar_json(FITXER_ESBORRANYS, esborranys)
         return posts
 
