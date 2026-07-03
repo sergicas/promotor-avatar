@@ -220,6 +220,109 @@ def fragments_reals_del_llibre(titol, n=4):
 
 
 # ---------------------------------------------------------------------------
+# BANC DE CITES DELS LLIBRES (frases triades per Sergi)
+# ---------------------------------------------------------------------------
+# Els dies de llibre, el post és SENZILL: una FRASE LITERAL d'un llibre, la
+# cita que diu de quin llibre és, i una imatge evocadora. Sense discurs, sense
+# web, sense hashtags (decisió Sergi 2026-07-03). Les frases les tria Sergi i
+# viuen a dades/cites_llibres.json ({ "Títol del llibre": ["frase", ...] }).
+from pathlib import Path
+
+FITXER_CITES = Path(__file__).parent / "dades" / "cites_llibres.json"
+
+# Motiu visual per llibre: NOMÉS símbols, objectes o natura (MAI persones,
+# cares o mans; MAI text dins la imatge — els generadors els censuren). Cada
+# llibre té la seva identitat visual, coherent entre les seves frases.
+MOTIUS_IMATGE = {
+    "Nara":
+        "unes ales de papallona iridescents entre fulles d'un bosc, "
+        "amb llum tènue i daurada de matí",
+    "La vida d'en George":
+        "un engranatge de rellotgeria antic entrellaçat amb una branca amb "
+        "fulles verdes, llum suau i neta",
+    "Inspector Montoliu":
+        "la llum d'un fanal solitari en un carrer moll de nit, amb ombres "
+        "allargades i reflexos a l'asfalt",
+    "Una Història Sentimental":
+        "unes fotografies antigues escampades sobre una taula de fusta, amb "
+        "llum càlida de tarda",
+    "Contes a la vora del gel":
+        "un llac glaçat amb branques nues i una boira lleugera, amb llum "
+        "freda i neta de matí d'hivern",
+    "Ànima Material":
+        "una ploma reposant sobre un full de paper en blanc vora una finestra, "
+        "amb llum tènue",
+    "Ètica i estètica de l'instant":
+        "un rellotge de sorra amb la llum travessant els grans de sorra, "
+        "amb un fons net i càlid",
+}
+MOTIU_IMATGE_PER_DEFECTE = (
+    "un llibre obert reposant vora una finestra, amb llum càlida i suau"
+)
+
+
+def _carrega_cites():
+    """Llegeix el banc de frases triades per Sergi.
+    Retorna {títol: [frases no buides]}; {} si el fitxer no existeix o és buit."""
+    try:
+        with open(FITXER_CITES, "r", encoding="utf-8") as f:
+            dades = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+    net = {}
+    for titol, llista in (dades.items() if isinstance(dades, dict) else []):
+        if isinstance(llista, list):
+            frases = [c.strip() for c in llista if isinstance(c, str) and c.strip()]
+            if frases:
+                net[titol] = frases
+    return net
+
+
+def _cita_del_dia(data):
+    """Retorna (frase, títol_del_llibre) per al dia, rotant lentament dins de
+    les frases del llibre del dia. (None, títol) si el llibre no té cap frase."""
+    titol = _get_llibre_del_dia(data)
+    frases = _carrega_cites().get(titol) or []
+    if not frases:
+        return None, titol
+    # Els dies de llibre cauen cada 4 dies del calendari; //4 avança l'índex
+    # una posició per cada dia de llibre, de manera que la frase va canviant.
+    idx = (data.toordinal() // 4) % len(frases)
+    return frases[idx], titol
+
+
+def _post_cita(frase, titol):
+    """El text del post: la frase entre cometes i la cita del llibre a sota.
+    Res més (ni web, ni hashtags, ni enllaços)."""
+    neta = frase.strip().strip('«»"“”').strip()
+    return "«{}»\n\n— {}".format(neta, titol)
+
+
+def _genera_posts_cita(data):
+    """Dia de llibre amb el format nou: la mateixa FRASE del llibre als tres
+    canals, amb la cita del títol i una imatge evocadora del llibre. No fa cap
+    crida a cap model: el text és literal i triat per Sergi.
+    Si el llibre del dia encara no té cap frase al banc, retorna
+    {'sense_cita': True, 'llibre': títol} perquè qui crida decideixi el pla B."""
+    frase, titol = _cita_del_dia(data)
+    if not frase:
+        return {"sense_cita": True, "llibre": titol}
+    bloc = {"text": _post_cita(frase, titol),
+            "imatge": MOTIUS_IMATGE.get(titol, MOTIU_IMATGE_PER_DEFECTE)}
+    if len(bloc["text"]) > 270:
+        print("[generador] AVÍS: la frase de «{}» passa de 270 caràcters ({}); "
+              "a X pot no cabre.".format(titol, len(bloc["text"])))
+    return {
+        "linkedin": dict(bloc),
+        "twitter": dict(bloc),
+        "instagram": dict(bloc),
+        "mode": "cita de llibre",
+        "tema": "Una frase de «{}»".format(titol),
+        "campanya": "cita",
+    }
+
+
+# ---------------------------------------------------------------------------
 # L'AVATAR: la font de veritat
 # ---------------------------------------------------------------------------
 # L'Avatar d'en Sergi (RAG a Cloud Run, entrenat amb el seu corpus real) és
@@ -760,6 +863,16 @@ def genera_posts_dia(data_str=None):
     # (longevitat), no els llibres. Té veu, brief i enllaç (App Store) propis.
     if _es_dia_arrel(data):
         return _genera_posts_arrel(client, data)
+
+    # DIES DE LLIBRE (format nou, decisió Sergi 2026-07-03): el post és una
+    # FRASE literal del llibre + la cita del títol + una imatge evocadora.
+    # No hi ha discurs ni model pel mig; la frase la tria Sergi.
+    posts_cita = _genera_posts_cita(data)
+    if not posts_cita.get("sense_cita"):
+        return posts_cita
+    print("[generador] El llibre «{}» encara no té cap frase al banc "
+          "(dades/cites_llibres.json); recorro al generador de discurs com a "
+          "xarxa de seguretat.".format(posts_cita.get("llibre")))
 
     # 1) Contingut general: els posts ja no surten del corpus personal ni del
     #    catàleg de llibres. Es generen directament a partir del tema del dia.

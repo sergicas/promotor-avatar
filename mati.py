@@ -118,8 +118,9 @@ def executa(data_override=None):
     ig_bloc = posts.get("instagram") or {}
     ig_text = ig_bloc.get("text", "")
     imatge_ig = ig_bloc.get("imatge") or posts.get("tema") or ""
-    if posts.get("campanya") == "arrel":
-        print("── TikTok omès (dia Arrel: només X/LinkedIn/Instagram) ──")
+    if posts.get("campanya") in ("arrel", "cita"):
+        motiu = "Arrel" if posts.get("campanya") == "arrel" else "cita de llibre"
+        print("── TikTok omès (dia {}: només X/LinkedIn/Instagram) ──".format(motiu))
     elif ig_text:
         print("── TikTok ──")
         res_tt = publica_tiktok(ig_text, imatge_ig, data_str)
