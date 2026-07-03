@@ -96,6 +96,25 @@ LLIBRES_ROTATIU = [
     "Acadèmia Gaia",
 ]
 
+# Llibre a prioritzar (la novetat): surt 1 de cada 2 dies de llibre; la resta
+# de llibres es reparteixen els altres dies. Posa'l a None per tornar a la
+# rotació equitativa entre tots.
+LLIBRE_PRIORITARI = "Acadèmia Gaia"
+
+
+def _ordre_llibres():
+    """Ordre de rotació dels llibres pels dies de llibre. Si hi ha un llibre
+    prioritari, s'intercala entre cada un dels altres, de manera que hi surt 1
+    de cada 2 dies de llibre i els altres van rotant en els dies restants."""
+    if LLIBRE_PRIORITARI and LLIBRE_PRIORITARI in LLIBRES_ROTATIU:
+        altres = [b for b in LLIBRES_ROTATIU if b != LLIBRE_PRIORITARI]
+        ordre = []
+        for b in altres:
+            ordre.append(LLIBRE_PRIORITARI)
+            ordre.append(b)
+        return ordre
+    return list(LLIBRES_ROTATIU)
+
 
 # X i LinkedIn: amb https:// perquè surti com a enllaç CLICABLE
 # (el domini nu "sergicastillo.com" sovint no s'enllaça sol).
@@ -170,10 +189,10 @@ def _get_mode_del_dia(data):
 def _get_llibre_del_dia(data):
     """Retorna el títol del llibre que toca avui, rotant un llibre per cada dia
     de llibre. Els dies de llibre tenen la data ordinal múltiple de 4 (dia de
-    publicació parell i no-Arrel), així que //4 avança el llibre d'un en un i
-    passa per TOTS els llibres (la rotació per dia de l'any només en donava dos)."""
-    idx = (data.toordinal() // 4) % len(LLIBRES_ROTATIU)
-    return LLIBRES_ROTATIU[idx]
+    publicació parell i no-Arrel), així que //4 avança d'un en un dins de
+    l'ordre de rotació (que dona prioritat al llibre prioritari si n'hi ha)."""
+    ordre = _ordre_llibres()
+    return ordre[(data.toordinal() // 4) % len(ordre)]
 
 
 # ---------------------------------------------------------------------------
@@ -289,16 +308,18 @@ def _carrega_cites():
 def _cita_del_dia(data):
     """Retorna (frase, títol_del_llibre) per al dia, rotant lentament dins de
     les frases del llibre del dia. (None, títol) si el llibre no té cap frase."""
-    titol = _get_llibre_del_dia(data)
+    ordre = _ordre_llibres()
+    n = len(ordre)
+    comptador = data.toordinal() // 4      # nº de dia de llibre
+    pos = comptador % n
+    titol = ordre[pos]
     frases = _carrega_cites().get(titol) or []
     if not frases:
         return None, titol
-    # Comptador de dies de llibre (la data ordinal dels dies de llibre és
-    # múltiple de 4). Cada llibre torna cada len(LLIBRES_ROTATIU) dies de
-    # llibre; dividint pel nombre de llibres obtenim quantes vegades ha sortit
-    # AQUEST llibre, i així la frase avança d'una en una a cada aparició i
-    # passen totes (encara que el nombre de frases divideixi el de llibres).
-    aparicio = (data.toordinal() // 4) // len(LLIBRES_ROTATIU)
+    # Quantes vegades ha sortit AQUEST llibre fins avui (comptant les seves
+    # aparicions dins de l'ordre de rotació, que pot ser més d'una per cicle si
+    # és el prioritari). Així la frase avança a cada aparició i passen totes.
+    aparicio = (comptador // n) * ordre.count(titol) + ordre[:pos].count(titol)
     return frases[aparicio % len(frases)], titol
 
 
