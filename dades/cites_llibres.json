@@ -1,9 +1,52 @@
 {
-  "Nara": [],
-  "La vida d'en George": [],
-  "Inspector Montoliu": [],
-  "Una Història Sentimental": [],
-  "Contes a la vora del gel": [],
-  "Ànima Material": [],
-  "Ètica i estètica de l'instant": []
+  "Nara": [
+    "Penso que els autèntics amics són per tota la vida, i que aquest vincle és encara més fort que la relació de parella.",
+    "Els errors del passat es poden perdonar, però no els del futur, si són la conseqüència del que ara decideixi.",
+    "Et fas molt amic d’algú, creus que estaràs amb aquella persona tota la vida, i un bon dia desapareix.",
+    "Tenim la capacitat, però això no vol dir que sempre la fem servir.",
+    "Vam veure com un petit canvi en el passat afectava moltíssim la cadena d’esdeveniments del futur."
+  ],
+  "La vida d'en George": [
+    "No hi ha ningú que no demani ajuda almenys algun cop a la vida.",
+    "Per a mi, és més important la felicitat que la veritat.",
+    "Els capricis són una de les coses que donen salsa a la vida.",
+    "Recuperar el que has perdut, o aconseguir el que no has tingut mai, aquest és un desig lloable, tot i que no sempre realitzable.",
+    "Quan es tracta de la realitat, no hi ha ningú que pagui perquè les coses surtin bé."
+  ],
+  "Inspector Montoliu": [
+    "El mal existeix, forma part de la condició humana, com la pell i els ossos que ens conformen.",
+    "La vida, certament, és una successió constant d’inconvenients.",
+    "Tot anava tan de pressa que la vida passava sense avisar, fugissera com un glaçó de gel en una tarda d’agost.",
+    "El mal és també un càncer social, i la meva feina és extirpar-lo.",
+    "Algú va dir que no hi ha fets, només interpretacions."
+  ],
+  "Una Història Sentimental": [
+    "Sense la vida no hi hauria art, ni tragèdia, ni comèdia.",
+    "La petita no podia entendre, a la seva edat, que això de dir la veritat no sempre era tan fàcil, ni tan simple.",
+    "Els dos joves es miraren com si el temps s’hagués aturat.",
+    "Aquesta pregunta voltava insistentment en l’ànim de tots els que l’observaven, però ningú no es va atrevir a formular-la de forma explícita."
+  ],
+  "Contes a la vora del gel": [
+    "Només quan els primers homínids van aprendre a dominar el foc, per allunyar-se del gel, van esdevenir plenament humans, i plenament socials.",
+    "No t’has d’avançar en el futur, perquè el que importa és el present.",
+    "Vaig tenir la sensació que el temps s'havia aturat, tot i que, girant el cap, podia veure encara els moviments de la gent advertint-me que tornés."
+  ],
+  "Ànima Material": [
+    "No tots els camins porten a Roma.",
+    "Hi ha tants camins com portes en el cel.",
+    "El poeta ha preferit no cenyir-se a cap estructura literària determinada, per poder gaudir d’un grau més alt de llibertat creativa."
+  ],
+  "Ètica i estètica de l'instant": [
+    "Quan reconeixem que el temps és limitat, que cada moment és únic i no es repetirà mai, es desperta en nosaltres una apreciació més intensa de la vida.",
+    "Potser el passat, el present i el futur no són més que convencions, punts de referència en un mapa que dibuixem a mesura que avancem.",
+    "Si el temps és el llenç i la consciència el pintor, la realitat podria ser l'obra en constant evolució que emergeix d'aquesta interacció.",
+    "Aquesta estètica de l'efímer està profundament arrelada en la consciència de la fugacitat de la vida i del món que ens envolta.",
+    "L'instant, aquest punt fugaç entre el passat i el futur, ha intrigat filòsofs durant mil·lennis."
+  ],
+  "Acadèmia Gaia": [
+    "Això ens porta a enfrontar la por primordial, que és la por de no saber qui som si deixem de ser allò que sempre hem cregut que érem.",
+    "Considero que no em cal disposar d’un poder d’elecció que només seria útil per provocar el dolor a la gent que m’envolta.",
+    "Les seves anàlisis internes l’havien conduït fins a conceptes extrems, especialment la dialèctica entre la vida i la no-vida.",
+    "Una mostra clara que la vida es podia manifestar de maneres diverses."
+  ]
 }

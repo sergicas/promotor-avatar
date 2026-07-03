@@ -93,6 +93,7 @@ LLIBRES_ROTATIU = [
     "Contes a la vora del gel",
     "Ànima Material",
     "Ètica i estètica de l'instant",
+    "Acadèmia Gaia",
 ]
 
 
@@ -167,8 +168,11 @@ def _get_mode_del_dia(data):
 
 
 def _get_llibre_del_dia(data):
-    """Retorna el títol del llibre que toca referenciar avui."""
-    idx = data.timetuple().tm_yday % len(LLIBRES_ROTATIU)
+    """Retorna el títol del llibre que toca avui, rotant un llibre per cada dia
+    de llibre. Els dies de llibre tenen la data ordinal múltiple de 4 (dia de
+    publicació parell i no-Arrel), així que //4 avança el llibre d'un en un i
+    passa per TOTS els llibres (la rotació per dia de l'any només en donava dos)."""
+    idx = (data.toordinal() // 4) % len(LLIBRES_ROTATIU)
     return LLIBRES_ROTATIU[idx]
 
 
@@ -191,6 +195,7 @@ FONTS_LLIBRES = {
     "Contes a la vora del gel": ["Literatura - Contes a la vora del gel"],
     "Ànima Material": ["Literatura - Ànima material"],
     "Ètica i estètica de l'instant": ["Filosofia - Ètica i Estètica de l'instant"],
+    "Acadèmia Gaia": ["Literatura - Acadèmia Gaia"],
     "Diálogos filosóficos con mi amigo Pi": [
         "Filosofia - Converses amb Pi",
         "Filosofia - Diálogos con mi amigo Pi",
@@ -255,6 +260,9 @@ MOTIUS_IMATGE = {
     "Ètica i estètica de l'instant":
         "un rellotge de sorra amb la llum travessant els grans de sorra, "
         "amb un fons net i càlid",
+    "Acadèmia Gaia":
+        "una nebulosa estelada damunt un paisatge de muntanya al capvespre, "
+        "amb una llum serena i misteriosa",
 }
 MOTIU_IMATGE_PER_DEFECTE = (
     "un llibre obert reposant vora una finestra, amb llum càlida i suau"
@@ -285,10 +293,13 @@ def _cita_del_dia(data):
     frases = _carrega_cites().get(titol) or []
     if not frases:
         return None, titol
-    # Els dies de llibre cauen cada 4 dies del calendari; //4 avança l'índex
-    # una posició per cada dia de llibre, de manera que la frase va canviant.
-    idx = (data.toordinal() // 4) % len(frases)
-    return frases[idx], titol
+    # Comptador de dies de llibre (la data ordinal dels dies de llibre és
+    # múltiple de 4). Cada llibre torna cada len(LLIBRES_ROTATIU) dies de
+    # llibre; dividint pel nombre de llibres obtenim quantes vegades ha sortit
+    # AQUEST llibre, i així la frase avança d'una en una a cada aparició i
+    # passen totes (encara que el nombre de frases divideixi el de llibres).
+    aparicio = (data.toordinal() // 4) // len(LLIBRES_ROTATIU)
+    return frases[aparicio % len(frases)], titol
 
 
 def _post_cita(frase, titol):
