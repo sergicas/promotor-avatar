@@ -1,12 +1,12 @@
 """
-imatges.py — Generació d'imatges amb Gemini Imagen 4 (fast).
+imatges.py — Generació d'imatges amb Gemini (Nano Banana 2).
 
 Donada una descripció catalana (la que genera Gemini al camp `imatge`
 del post d'Instagram), genera una imatge fotorealista i la desa al disc
 sota `imatges_generades/<data>_<xarxa>.png`. Retorna el Path local.
 
 Requereix:
-  - GEMINI_API_KEY amb facturació activa (Imagen 4 requereix paid tier)
+  - GEMINI_API_KEY amb facturació activa (la generació d'imatges és de pagament)
   - Cost aproximat: ~$0.02/imatge (1 imatge/dia ≈ 0.60€/mes)
 
 Estil base de les imatges (perquè el feed tingui coherència visual):
@@ -14,6 +14,7 @@ Estil base de les imatges (perquè el feed tingui coherència visual):
 """
 
 import base64
+import os
 import re
 import time
 from pathlib import Path
@@ -30,11 +31,19 @@ ESPERA_ENTRE_INTENTS = (5, 15, 30)  # segons, creixent
 ARREL = Path(__file__).resolve().parent
 DIR_IMATGES = ARREL / "imatges_generades"
 
-MODEL_IMAGEN = "imagen-4.0-fast-generate-001"
-ENDPOINT_IMAGEN = (
+# Imagen 4 va ser retirat per Google el juny-juliol de 2026. El substitut és
+# la família d'imatge de Gemini ("Nano Banana"). Es fa servir Nano Banana 2
+# (gemini-3.1-flash-image, estable, ràpid i pensat per a alt volum), via
+# l'endpoint generateContent (l'antic :predict era exclusiu d'Imagen).
+# Es pot canviar sense tocar codi amb la variable d'entorn GEMINI_IMAGE_MODEL.
+MODEL_IMATGE = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image")
+ENDPOINT_IMATGE = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    + MODEL_IMAGEN + ":predict"
+    + MODEL_IMATGE + ":generateContent"
 )
+
+# Model petit per a la traducció del prompt (una frase): el flash-lite estable.
+MODEL_TRADUCCIO = os.environ.get("GEMINI_LITE_MODEL", "gemini-3.1-flash-lite")
 
 # Estil visual comú perquè el feed tingui coherència de marca.
 # Sense persones (les figures humanes provoquen censura o imatges genèriques),
@@ -47,7 +56,7 @@ ESTIL_BASE = (
 
 def _tradueix_a_prompt(descripcio_ca):
     # type: (str) -> str
-    """Converteix la descripció catalana a un prompt anglès per a Imagen.
+    """Converteix la descripció catalana a un prompt anglès per al model d'imatge.
     Fa servir Gemini text per a una traducció ràpida i creativa."""
     desc = descripcio_ca.strip().lstrip("[").rstrip("]")
     api_key = get_key("GEMINI_API_KEY")
@@ -57,11 +66,11 @@ def _tradueix_a_prompt(descripcio_ca):
     try:
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
-            "gemini-2.5-flash:generateContent?key=" + api_key
+            + MODEL_TRADUCCIO + ":generateContent?key=" + api_key
         )
         prompt = (
             "Converteix aquesta descripció catalana en un prompt en anglès per a "
-            "un generador d'imatges (Imagen 4). Pinta FIDELMENT l'escena descrita "
+            "un generador d'imatges. Pinta FIDELMENT l'escena descrita "
             "(els objectes, la natura, el lloc i l'atmosfera). REGLA ABSOLUTA: "
             "l'escena NO pot contenir cap persona, ni mans, ni cares, ni siluetes "
             "ni figures humanes. Si la descripció menciona una persona o una part "
@@ -79,10 +88,10 @@ def _tradueix_a_prompt(descripcio_ca):
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
                     "temperature": 0.5,
-                    "maxOutputTokens": 200,
-                    # Desactivar el "thinking": si no, es menja tot el pressupost
-                    # de paraules i la resposta surt truncada (p. ex. només "Close").
-                    "thinkingConfig": {"thinkingBudget": 0},
+                    # thinkingBudget era un paràmetre de l'era Gemini 2.5; els
+                    # models 3.x el rebutgen. Límit ampli perquè el raonament
+                    # intern no trunqui la frase de sortida.
+                    "maxOutputTokens": 1000,
                 },
             },
             timeout=20,
@@ -129,22 +138,25 @@ def genera_imatge(descripcio_ca, data_iso, xarxa="instagram", aspect_ratio="1:1"
         motiu = None  # per què ha fallat aquest intent (None = èxit)
         try:
             r = requests.post(
-                ENDPOINT_IMAGEN + "?key=" + api_key,
+                ENDPOINT_IMATGE + "?key=" + api_key,
                 json={
-                    "instances": [{"prompt": prompt_complet}],
-                    "parameters": {
-                        "sampleCount": 1,
-                        "aspectRatio": aspect_ratio,
+                    "contents": [{"parts": [{"text": prompt_complet}]}],
+                    "generationConfig": {
+                        "responseModalities": ["TEXT", "IMAGE"],
+                        "imageConfig": {"aspectRatio": aspect_ratio},
                     },
                 },
-                timeout=60,
+                timeout=120,
             )
             if r.status_code != 200:
                 motiu = "Error API ({}): {}".format(r.status_code, r.text[:150])
             else:
                 data = r.json()
-                preds = data.get("predictions", [])
-                b64 = preds[0].get("bytesBase64Encoded") if preds else None
+                parts = (data.get("candidates", [{}])[0]
+                             .get("content", {}).get("parts", []))
+                b64 = next((p["inlineData"]["data"] for p in parts
+                            if isinstance(p.get("inlineData"), dict)
+                            and p["inlineData"].get("data")), None)
                 if not b64:
                     motiu = "resposta sense imatge: {}".format(str(data)[:150])
                 else:

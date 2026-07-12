@@ -1,5 +1,5 @@
 """
-tiktok.py — Genera vídeo amb Google Veo 2 i el publica a TikTok.
+tiktok.py — Genera vídeo amb Google Veo (3.1) i el publica a TikTok.
 
 SETUP PREVI (una sola vegada):
   1. Crea una app a developers.tiktok.com amb permisos:
@@ -13,7 +13,7 @@ SETUP PREVI (una sola vegada):
 
 FLUX en producció:
   - Agafa la descripció de la imatge (camp `imatge` del post)
-  - La tradueix a anglès i genera un vídeo 9:16 de ~8s amb Veo 2
+  - La tradueix a anglès i genera un vídeo 9:16 de ~8s amb Veo
   - Puja el vídeo a TikTok i el publica directament (DIRECT_POST)
   - Usa el text d'Instagram com a peu de vídeo (el més visual dels 3)
 """
@@ -27,7 +27,9 @@ import requests
 from config import get_key
 
 TIKTOK_API = "https://open.tiktokapis.com/v2"
-VEO_MODEL = "veo-2.0-generate-001"
+# Veo 2 va ser retirat per Google; el vigent és la família Veo 3.1 (encara
+# en "preview": Google no ofereix cap Veo estable). Canviable per entorn.
+VEO_MODEL = os.environ.get("VEO_MODEL", "veo-3.1-generate-preview")
 
 ARREL = Path(__file__).resolve().parent
 DIR_VIDEOS = ARREL / "videos_tiktok"
@@ -82,25 +84,26 @@ def _get_access_token():
 # ---------------------------------------------------------------------------
 
 def _tradueix_a_prompt_video(descripcio_ca):
-    """Converteix la descripció catalana a un prompt de vídeo anglès per a Veo 2."""
+    """Converteix la descripció catalana a un prompt de vídeo anglès per a Veo."""
     api_key = get_key("GEMINI_API_KEY")
     if not api_key:
         return descripcio_ca
     try:
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
-            "gemini-2.5-flash:generateContent?key=" + api_key
+            + os.environ.get("GEMINI_LITE_MODEL", "gemini-3.1-flash-lite")
+            + ":generateContent?key=" + api_key
         )
         payload = {
             "contents": [{"parts": [{"text": (
                 "Translate this Catalan visual description into a short, cinematic "
-                "video prompt for an AI video generator (Veo 2). Style: warm natural "
+                "video prompt for an AI video generator. Style: warm natural "
                 "lighting, literary mood, dynamic subtle motion, no people, no text. "
                 "Under 80 words. Output ONLY the English prompt.\n\n" + descripcio_ca
             )}]}],
             "generationConfig": {
-                "maxOutputTokens": 150,
-                "thinkingConfig": {"thinkingBudget": 0},
+                # thinkingBudget era de l'era 2.5; els models 3.x el rebutgen.
+                "maxOutputTokens": 1000,
             },
         }
         r = requests.post(url, json=payload, timeout=20)
@@ -117,7 +120,7 @@ def _tradueix_a_prompt_video(descripcio_ca):
 
 def genera_video(descripcio_ca, data_iso):
     """
-    Genera un vídeo 9:16 de ~8s amb Google Veo 2.
+    Genera un vídeo 9:16 de ~8s amb Google Veo.
     Desa el resultat a videos_tiktok/<data_iso>_tiktok.mp4.
     Retorna el Path local o None si falla.
     """
@@ -133,7 +136,7 @@ def genera_video(descripcio_ca, data_iso):
         return None
 
     prompt = _tradueix_a_prompt_video(descripcio_ca)
-    print("[tiktok] Generant vídeo Veo 2 (pot trigar 3-8 min)...")
+    print("[tiktok] Generant vídeo Veo (pot trigar 3-8 min)...")
     print("[tiktok] Prompt: {}".format(prompt[:120]))
 
     try:
@@ -141,10 +144,10 @@ def genera_video(descripcio_ca, data_iso):
         from google.genai import types as genai_types
 
         client = genai.Client(api_key=api_key)
-        operation = client.models.generate_video(
+        operation = client.models.generate_videos(
             model=VEO_MODEL,
             prompt=prompt,
-            config=genai_types.GenerateVideoConfig(
+            config=genai_types.GenerateVideosConfig(
                 aspect_ratio="9:16",
                 number_of_videos=1,
             ),
@@ -154,7 +157,7 @@ def genera_video(descripcio_ca, data_iso):
             if operation.done:
                 break
             if i > 0 and i % 6 == 0:
-                print("[tiktok] ...esperant Veo 2 ({}/{}min)...".format(
+                print("[tiktok] ...esperant Veo ({}/{}min)...".format(
                     i * ESPERA_VEO_INTERVAL // 60,
                     ESPERA_VEO_INTENTS * ESPERA_VEO_INTERVAL // 60,
                 ))
@@ -162,7 +165,7 @@ def genera_video(descripcio_ca, data_iso):
             operation = client.operations.get(operation)
 
         if not operation.done:
-            print("[tiktok] Veo 2 ha trigat massa (>{}min); es rendeix.".format(
+            print("[tiktok] Veo ha trigat massa (>{}min); es rendeix.".format(
                 ESPERA_VEO_INTENTS * ESPERA_VEO_INTERVAL // 60))
             return None
 

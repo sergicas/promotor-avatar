@@ -5,6 +5,7 @@ Compatible amb Python 3.9+
 """
 
 import json
+import os
 import re
 import time
 import datetime
@@ -34,7 +35,10 @@ def _es_error_transitori(e):
 # ---------------------------------------------------------------------------
 # Configuració del model
 # ---------------------------------------------------------------------------
-GEMINI_MODEL = "gemini-2.5-flash"
+# Model de text. Google retira models cada pocs mesos (gemini-2.5-flash va
+# morir el juliol de 2026 abans de la data anunciada), així que el nom es pot
+# canviar via variable d'entorn sense tocar el codi: GEMINI_TEXT_MODEL.
+GEMINI_MODEL = os.environ.get("GEMINI_TEXT_MODEL", "gemini-3.5-flash")
 
 # Catàleg complet de llibres per incloure al context del model
 CATALEG_LLIBRES = """
@@ -965,9 +969,11 @@ def _intent_generacio(client, prompt):
                 contents=prompt,
                 config=genai_types.GenerateContentConfig(
                     temperature=0.7,
-                    max_output_tokens=4096,
-                    # Desactivar thinking per obtenir JSON net i directe
-                    thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+                    # Els models Gemini 3.x ja no accepten thinking_budget (el
+                    # paràmetre de l'era 2.5); es deixa el thinking per defecte
+                    # i s'amplia el límit perquè els tokens de raonament no
+                    # escurcin el JSON de sortida.
+                    max_output_tokens=8192,
                 ),
             )
             break
