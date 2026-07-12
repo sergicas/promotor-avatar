@@ -53,6 +53,7 @@ HORA_SORTIDA = 7
 
 # Cache en memòria durant la vida del procés
 _org_id_cache = None
+_org_error_cache = None
 
 
 def _get_token():
@@ -95,22 +96,22 @@ def _buffer_graphql(query, variables=None):
 def _org_id():
     """Retorna l'organization id del compte Buffer (cachejat).
 
-    Buffer va restringir l'accés al camp `currentOrganization` (FORBIDDEN),
-    però la llista `organizations` segueix accessible amb el mateix id. Per
-    això es demanen tots dos i s'usa el que funcioni (currentOrganization si
-    hi és; si no, la primera de organizations)."""
-    global _org_id_cache
+    `organizations` és el camp documentat per Buffer. No es consulta
+    `currentOrganization`: és un camp intern restringit i un error seu pot
+    anul·lar tot l'objecte `account`, encara que el token sigui vàlid."""
+    global _org_id_cache, _org_error_cache
     if _org_id_cache:
         return _org_id_cache
-    r = _buffer_graphql("{ account { currentOrganization { id } organizations { id } } }")
+    r = _buffer_graphql("{ account { organizations { id } } }")
+    errors = r.get("errors") or []
+    if errors:
+        _org_error_cache = "; ".join(e.get("message", "?") for e in errors)
     acc = (r.get("data") or {}).get("account") or {}
-    org = (acc.get("currentOrganization") or {}).get("id")
-    if not org:
-        orgs = acc.get("organizations") or []
-        if orgs:
-            org = orgs[0].get("id")
+    orgs = acc.get("organizations") or []
+    org = orgs[0].get("id") if orgs else ""
     if org:
         _org_id_cache = org
+        _org_error_cache = None
         return org
     return ""
 
@@ -149,10 +150,11 @@ def get_canals(forcar_refresc=False):
 
     org_id = _org_id()
     if not org_id:
+        detall = ": {}".format(_org_error_cache) if _org_error_cache else ""
         return {"error": (
-            "Token de Buffer invàlid o caducat (no s'ha pogut obtenir el compte). "
+            "No s'ha pogut obtenir el compte de Buffer{} "
             "Regenera'l a buffer.com/developers/api."
-        )}
+        ).format(detall)}
 
     resp = _buffer_graphql(
         "query($input: ChannelsInput!) { channels(input: $input) { id service } }",
