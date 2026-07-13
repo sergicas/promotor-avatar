@@ -1,21 +1,23 @@
 import sys
 sys.path.insert(0, "/Users/sergicastillo/Documents/Promotor Avatar Sergi")
-from publicador import _buffer_graphql, _org_id
-org = _org_id()
-r = _buffer_graphql(
-    "query($i: PostsInput!){ posts(input:$i, first:200){ edges{ node{ "
-    "id text dueAt channelService } } } }",
-    {"i": {"organizationId": org, "filter": {"status": ["scheduled"]}}},
-)
-edges = (((r.get("data") or {}).get("posts") or {}).get("edges")) or []
-print(f"Total scheduled: {len(edges)}")
-per_dia = {}
-for e in edges:
-    n = e["node"]
-    d = (n.get("dueAt") or "")[:10]
-    c = n.get("channelService")
-    per_dia.setdefault((d, c), []).append(n)
-for (d, c), lst in sorted(per_dia.items()):
-    for n in lst:
-        preview = (n.get("text") or "").replace("\n"," ")[:70]
-        print(f"  {d} · {c} · {n['id'][:8]} · {preview}")
+from publicador import _buffer_graphql
+
+# Sense _org_id (que està cachejat i pot ser buit al procés nou)
+acc = _buffer_graphql("{ account { currentOrganization { id } organizations { id } } }")
+print("ACCOUNT:", acc)
+
+a = (acc.get("data") or {}).get("account") or {}
+org = (a.get("currentOrganization") or {}).get("id") or (a.get("organizations",[{}])[0].get("id"))
+print("ORG:", org)
+
+for status in [["scheduled"], ["sent"], ["draft"], ["scheduled","sent","draft"]]:
+    r = _buffer_graphql(
+        "query($i: PostsInput!){ posts(input:$i, first:200){ edges{ node{ id text dueAt channelService status } } } }",
+        {"i": {"organizationId": org, "filter": {"status": status}}},
+    )
+    if "errors" in r:
+        print(f"STATUS {status}: ERRORS", r["errors"])
+        continue
+    edges = (((r.get("data") or {}).get("posts") or {}).get("edges")) or []
+    dies = [(e["node"].get("dueAt") or "")[:10] + " " + str(e["node"].get("channelService")) for e in edges if (e["node"].get("dueAt") or "").startswith("2026-07-1")]
+    print(f"STATUS {status}: total {len(edges)}; matches jul 15-19: {dies}")
