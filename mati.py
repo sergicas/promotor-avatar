@@ -153,12 +153,12 @@ def executa_amb_reintents(data_override=None):
     d'aquell dia concret i se salta la comprovació de cadència (per provar o
     rescatar un dia a mà)."""
     if not data_override:
-        # Freqüència: un post cada dos dies (reorientació 2026-06). Només es
-        # preparen posts quan la data del post (demà) cau en dia parell del
+        # Freqüència: un post cada tres dies (reorientació 2026-06). Només es
+        # preparen posts quan la data del post (demà) cau en dia múltiple de 3 del
         # calendari. Els altres dies, la passada no fa res.
         dema = datetime.date.today() + datetime.timedelta(days=1)
         if dema.toordinal() % 3 != 0:
-            print("Avui no toca preparar posts: surten cada dos dies. "
+            print("Avui no toca preparar posts: surten cada tres dies. "
                   "Proper dia de publicació: {}.".format(
                       (dema + datetime.timedelta(days=1)).isoformat()))
             return 0
