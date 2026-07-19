@@ -157,7 +157,7 @@ def executa_amb_reintents(data_override=None):
         # preparen posts quan la data del post (demà) cau en dia parell del
         # calendari. Els altres dies, la passada no fa res.
         dema = datetime.date.today() + datetime.timedelta(days=1)
-        if dema.toordinal() % 2 != 0:
+        if dema.toordinal() % 3 != 0:
             print("Avui no toca preparar posts: surten cada dos dies. "
                   "Proper dia de publicació: {}.".format(
                       (dema + datetime.timedelta(days=1)).isoformat()))
