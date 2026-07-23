@@ -42,6 +42,14 @@ ESPERA_XARXA_INTENTS = 30      # fins a 30 intents…
 ESPERA_XARXA_INTERVAL = 10     # …cada 10s = fins a 5 minuts esperant la xarxa
 
 
+def proper_dia_publicacio(des_de):
+    """Retorna el primer dia, a partir de ``des_de``, que compleix la cadència."""
+    dia = des_de
+    while dia.toordinal() % 3 != 0:
+        dia += datetime.timedelta(days=1)
+    return dia
+
+
 def espera_xarxa():
     """Espera que els servidors clau siguin accessibles (Wi-Fi reconnectat).
     Retorna True quan hi ha connexió, False si s'esgota el temps."""
@@ -108,8 +116,12 @@ def executa(data_override=None):
             "text": text,
             "imatge_url": res.get("imatge_url"),
             "ok": bool(res.get("ok")),
+            "skip": bool(res.get("skip")),
             "msg": res.get("error") or res.get("msg", ""),
         })
+
+    buffer_items = [it for it in items if it.get("canal") in PLATAFORMES]
+    buffer_ja_preparat = bool(buffer_items) and all(it.get("skip") for it in buffer_items)
 
     # TikTok: publica directament (DIRECT_POST) ara mateix, amb el vídeo de Veo 2.
     # Usa el text d'Instagram (el més visual) com a peu de vídeo.
@@ -118,7 +130,16 @@ def executa(data_override=None):
     ig_bloc = posts.get("instagram") or {}
     ig_text = ig_bloc.get("text", "")
     imatge_ig = ig_bloc.get("imatge") or posts.get("tema") or ""
-    if posts.get("campanya") in ("arrel", "cita"):
+    if buffer_ja_preparat:
+        print("── TikTok omès: la passada és un reintent i Buffer ja tenia tots els posts ──")
+        items.append({
+            "canal": "tiktok",
+            "text": ig_text,
+            "ok": True,
+            "skip": True,
+            "msg": "Passada duplicada omesa.",
+        })
+    elif posts.get("campanya") in ("arrel", "cita"):
         motiu = "Arrel" if posts.get("campanya") == "arrel" else "cita de llibre"
         print("── TikTok omès (dia {}: només X/LinkedIn/Instagram) ──".format(motiu))
     elif ig_text:
@@ -127,15 +148,18 @@ def executa(data_override=None):
         if res_tt.get("ok"):
             print("✓ tiktok: {}".format(res_tt.get("msg", "publicat")))
         else:
+            errors += 1
             print("✗ tiktok: {}".format(res_tt.get("error", "error desconegut")))
         items.append({
             "canal": "tiktok",
             "text": ig_text,
             "ok": bool(res_tt.get("ok")),
+            "skip": bool(res_tt.get("skip")),
             "msg": res_tt.get("error") or res_tt.get("msg", ""),
         })
     else:
         print("✗ tiktok: sense text d'Instagram per generar el vídeo")
+        errors += 1
 
     if errors:
         print("Acabat amb {} error(s). Revisa els missatges de dalt.".format(errors))
@@ -158,9 +182,15 @@ def executa_amb_reintents(data_override=None):
         # calendari. Els altres dies, la passada no fa res.
         dema = datetime.date.today() + datetime.timedelta(days=1)
         if dema.toordinal() % 3 != 0:
+            proper_dia = proper_dia_publicacio(dema)
             print("Avui no toca preparar posts: surten cada tres dies. "
                   "Proper dia de publicació: {}.".format(
-                      (dema + datetime.timedelta(days=1)).isoformat()))
+                      proper_dia.isoformat()))
+            try:
+                from correu import envia_estat_cadencia
+                envia_estat_cadencia(dema.isoformat(), proper_dia.isoformat())
+            except Exception as e:
+                print("[mati] no s'ha pogut enviar l'estat de cadència: {}".format(e))
             return 0
     # Esperar que el Wi-Fi estigui realment connectat abans de començar
     # (el Mac s'acaba de despertar i la xarxa pot trigar uns segons/minuts).

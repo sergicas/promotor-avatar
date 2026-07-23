@@ -1,0 +1,54 @@
+name: El Bon Diari a Buffer
+
+on:
+  schedule:
+    # 08:10 hora de Madrid a l'estiu. La publicació queda escalonada uns minuts.
+    - cron: '10 6 * * *'
+  workflow_dispatch:
+    inputs:
+      dia:
+        description: "Dia concret (YYYY-MM-DD). Buit = avui."
+        required: false
+        default: ""
+      dry_run:
+        description: "Genera i valida sense publicar"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bondiari-xarxes
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Europe/Madrid
+      BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_IMG_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install --quiet -r requirements.txt
+      - name: Publicar les tres xarxes
+        shell: bash
+        run: |
+          args=()
+          if [[ -n "${{ github.event.inputs.dia }}" ]]; then
+            args+=(--date "${{ github.event.inputs.dia }}")
+          fi
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            args+=(--dry-run)
+          fi
+          python -u bondiari_xarxes.py "${args[@]}"
+      - name: Podar imatges antigues
+        if: always()
+        run: python -u poda_imatges.py
