@@ -18,14 +18,45 @@ ADRECA = os.environ.get("CORREU_DESTINATARI", "sergicas@gmail.com")
 BUFFER_WEB = "https://publish.buffer.com"
 
 
+def _contrasenya_gmail():
+    pw = os.environ.get("GMAIL_APP_PASSWORD", "")
+    return "".join(c for c in pw if not c.isspace() and c != "\xa0")
+
+
+def _envia(msg):
+    pw = _contrasenya_gmail()
+    if not pw:
+        print("[correu] sense GMAIL_APP_PASSWORD; no s'envia el correu.")
+        return False
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context()) as s:
+            s.login(ADRECA, pw)
+            s.send_message(msg)
+        print("[correu] correu enviat a {}.".format(ADRECA))
+        return True
+    except Exception as e:
+        print("[correu] no s'ha pogut enviar el correu: {}".format(e))
+        return False
+
+
+def envia_estat_cadencia(data_str, proper_dia):
+    """Confirma que l'execució diària és viva encara que aquell dia no publiqui."""
+    msg = EmailMessage()
+    msg["From"] = "Promotor Avatar <{}>".format(ADRECA)
+    msg["To"] = ADRECA
+    msg["Subject"] = "Posts del {} — no toca publicar; promotor actiu".format(data_str)
+    msg.set_content(
+        "El promotor s'ha executat correctament.\n\n"
+        "No toca preparar posts per al {} perquè la cadència és d'un post "
+        "cada tres dies.\n"
+        "Proper dia de publicació: {}.\n".format(data_str, proper_dia)
+    )
+    return _envia(msg)
+
+
 def envia_resum(data_str, items):
     """Envia el resum. `items` és una llista de dicts:
     {canal, text, imatge_url, ok, msg}. Retorna True si s'ha enviat."""
-    pw = os.environ.get("GMAIL_APP_PASSWORD", "")
-    pw = "".join(c for c in pw if not c.isspace() and c != "\xa0")
-    if not pw:
-        print("[correu] sense GMAIL_APP_PASSWORD; no s'envia el resum.")
-        return False
     if not items:
         return False
 
@@ -42,7 +73,10 @@ def envia_resum(data_str, items):
             "",
         ]
         for it in items_buffer:
-            estat = "✓ programat" if it.get("ok") else "✗ NO programat ({})".format(it.get("msg", "error"))
+            if it.get("skip"):
+                estat = "↷ ja existia a Buffer; duplicat omès"
+            else:
+                estat = "✓ programat" if it.get("ok") else "✗ NO programat ({})".format(it.get("msg", "error"))
             linies.append("【 {} 】 {}".format(it["canal"].upper(), estat))
             if it.get("text"):
                 linies.append(it["text"])
@@ -51,10 +85,13 @@ def envia_resum(data_str, items):
             linies += ["", "─────────────────────────────", ""]
 
     if item_tiktok:
-        estat_tt = (
-            "✓ publicat (vídeo Veo 2, directe)" if item_tiktok.get("ok")
-            else "✗ NO publicat — {}".format(item_tiktok.get("msg", "error"))
-        )
+        if item_tiktok.get("skip"):
+            estat_tt = "↷ duplicat omès"
+        else:
+            estat_tt = (
+                "✓ publicat (vídeo Veo 2, directe)" if item_tiktok.get("ok")
+                else "✗ NO publicat — {}".format(item_tiktok.get("msg", "error"))
+            )
         linies += ["── TikTok ──", estat_tt]
         if item_tiktok.get("text"):
             linies.append(item_tiktok["text"])
@@ -66,12 +103,4 @@ def envia_resum(data_str, items):
     msg["Subject"] = "Posts del {} — revisa'ls abans de les 7:00".format(data_str)
     msg.set_content("\n".join(linies))
 
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context()) as s:
-            s.login(ADRECA, pw)
-            s.send_message(msg)
-        print("[correu] resum enviat a {}.".format(ADRECA))
-        return True
-    except Exception as e:
-        print("[correu] no s'ha pogut enviar el resum: {}".format(e))
-        return False
+    return _envia(msg)
