@@ -359,7 +359,10 @@ def _ja_programat_aquell_dia(channel_id, data_str):
     return False
 
 
-def publica_post(canal, text, imatge=None, data_str=None, quan=None):
+def publica_post(
+    canal, text, imatge=None, data_str=None, quan=None,
+    evitar_duplicat_diari=True,
+):
     """
     Envia un post a Buffer, programat per a les 7:00 del dia del post
     (customScheduled). Si les 7:00 d'aquell dia ja han passat, va a la cua
@@ -375,6 +378,8 @@ def publica_post(canal, text, imatge=None, data_str=None, quan=None):
         imatge: descripció visual en català (o ruta d'imatge local) per a
                 aquesta xarxa; si falta, es deriva del text.
         data_str: data ISO del post (per nomenar/cachejar la imatge del dia)
+        evitar_duplicat_diari: manté la protecció històrica per dia. Els fluxos
+                amb un registre propi per URL poden desactivar-la.
 
     Returns:
         {"ok": True, "msg": "...", "id": "..."} si ha anat bé
@@ -400,7 +405,7 @@ def publica_post(canal, text, imatge=None, data_str=None, quan=None):
     # Anti-duplicats: si Buffer ja té un post d'aquest canal per a aquest dia,
     # no en creem un altre (evita duplicats si el preparador es repeteix o si
     # conviuen el portàtil i el núvol). Es comprova ABANS de generar la imatge.
-    if _ja_programat_aquell_dia(canals[canal_norm], data_str):
+    if evitar_duplicat_diari and _ja_programat_aquell_dia(canals[canal_norm], data_str):
         return {"ok": True, "skip": True,
                 "msg": "Ja hi ha un post a {} per al {} — no en creo cap altre.".format(canal, data_str)}
 

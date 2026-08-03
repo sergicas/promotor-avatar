@@ -2,8 +2,10 @@ name: El Bon Diari a Buffer
 
 on:
   schedule:
-    # 08:10 hora de Madrid a l'estiu. La publicació queda escalonada uns minuts.
-    - cron: '10 6 * * *'
+    # Dues franges UTC per cobrir l'horari d'estiu i d'hivern de Madrid.
+    # El primer pas només deixa continuar la que correspon a les 08:00 locals.
+    - cron: '0 6 * * *'
+    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       dia:
@@ -33,12 +35,32 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_IMG_REPO: ${{ github.repository }}
     steps:
+      - name: Validar les 08:00 de Madrid
+        id: franja
+        env:
+          TRIGGER: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+        run: |
+          offset="$(date +%z)"
+          if [[ "$TRIGGER" == "workflow_dispatch" ]] || \
+             [[ "$CRON" == "0 6 * * *" && "$offset" == "+0200" ]] || \
+             [[ "$CRON" == "0 7 * * *" && "$offset" == "+0100" ]]; then
+            echo "executar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "executar=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.franja.outputs.executar == 'true'
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
+        if: steps.franja.outputs.executar == 'true'
         with:
           python-version: '3.11'
-      - run: pip install --quiet -r requirements.txt
+      - if: steps.franja.outputs.executar == 'true'
+        run: pip install --quiet -r requirements.txt
       - name: Publicar les tres xarxes
+        if: steps.franja.outputs.executar == 'true'
         shell: bash
         run: |
           args=()
@@ -49,6 +71,19 @@ jobs:
             args+=(--dry-run)
           fi
           python -u bondiari_xarxes.py "${args[@]}"
+      - name: Desar l'historial per URL i plataforma
+        if: always() && steps.franja.outputs.executar == 'true'
+        shell: bash
+        run: |
+          if git diff --quiet -- dades/bondiari-publicacions.json; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dades/bondiari-publicacions.json
+          git commit -m "estat: publicacions de Bondiari"
+          git pull --rebase origin main
+          git push origin HEAD:main
       - name: Podar imatges antigues
-        if: always()
+        if: always() && steps.franja.outputs.executar == 'true'
         run: python -u poda_imatges.py
