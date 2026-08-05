@@ -27,6 +27,8 @@ jobs:
     env:
       TZ: Europe/Madrid
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # gemini-3.1-flash-image no té quota al nivell gratuït; el 2.5 sí.
+      GEMINI_IMAGE_MODEL: gemini-2.5-flash-image
       BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # per penjar les imatges al repo
       GH_IMG_REPO: ${{ github.repository }}
