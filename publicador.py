@@ -311,7 +311,21 @@ def _imatge_publica(descripcio, text, data_str, xarxa):
                 aspect_ratio=aspect_per_xarxa(xarxa),
             )
         except Exception as e:
-            return None, "No s'ha pogut generar la imatge per a {}: {}".format(xarxa, e)
+            print("[publicador] genera_imatge ha fallat per a {}: {}".format(xarxa, e))
+            cami = None
+
+        if not cami:
+            # Pla B sense API (gratuït): targeta local amb el text del post,
+            # a l'estil d'El Bon Diari. Si Gemini es recupera (facturació,
+            # quota), el primer intent tornarà a donar imatges generades.
+            try:
+                from targetes import munta_targeta
+                cami = munta_targeta(text, data_str, xarxa)
+                print("[publicador] {}: imatge de Gemini no disponible; "
+                      "es fa servir una targeta local.".format(xarxa))
+            except Exception as e:
+                print("[publicador] la targeta local també ha fallat per a "
+                      "{}: {}".format(xarxa, e))
 
     if not cami:
         return None, (
