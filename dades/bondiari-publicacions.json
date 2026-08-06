@@ -1,5 +1,22 @@
 {
   "urls": {
+    "https://bondiari.com/noticia/feed-75quin": {
+      "published": {
+        "instagram": {
+          "at": "2026-08-06T08:30:49.761079+00:00",
+          "buffer_id": "6a744639050bfda18947b043"
+        },
+        "linkedin": {
+          "at": "2026-08-06T08:30:48.495260+00:00",
+          "buffer_id": "6a7446381075d3e75224c795"
+        },
+        "twitter": {
+          "at": "2026-08-06T08:30:46.491148+00:00",
+          "buffer_id": "6a744636064fd142b0a5d8ee"
+        }
+      },
+      "title": "Recorden la figura del doctor Josep Pont i Gol trenta anys després del seu traspàs"
+    },
     "https://bondiari.com/noticia/feed-c9sq31": {
       "published": {
         "instagram": {
