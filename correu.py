@@ -39,21 +39,6 @@ def _envia(msg):
         return False
 
 
-def envia_estat_cadencia(data_str, proper_dia):
-    """Confirma que l'execució diària és viva encara que aquell dia no publiqui."""
-    msg = EmailMessage()
-    msg["From"] = "Promotor Avatar <{}>".format(ADRECA)
-    msg["To"] = ADRECA
-    msg["Subject"] = "Posts del {} — no toca publicar; promotor actiu".format(data_str)
-    msg.set_content(
-        "El promotor s'ha executat correctament.\n\n"
-        "No toca preparar posts per al {} perquè la cadència és d'un post "
-        "cada tres dies.\n"
-        "Proper dia de publicació: {}.\n".format(data_str, proper_dia)
-    )
-    return _envia(msg)
-
-
 def envia_resum(data_str, items):
     """Envia el resum. `items` és una llista de dicts:
     {canal, text, imatge_url, ok, msg}. Retorna True si s'ha enviat."""

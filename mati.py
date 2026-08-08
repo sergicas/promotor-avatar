@@ -42,14 +42,6 @@ ESPERA_XARXA_INTENTS = 30      # fins a 30 intents…
 ESPERA_XARXA_INTERVAL = 10     # …cada 10s = fins a 5 minuts esperant la xarxa
 
 
-def proper_dia_publicacio(des_de):
-    """Retorna el primer dia, a partir de ``des_de``, que compleix la cadència."""
-    dia = des_de
-    while dia.toordinal() % 3 != 0:
-        dia += datetime.timedelta(days=1)
-    return dia
-
-
 def espera_xarxa():
     """Espera que els servidors clau siguin accessibles (Wi-Fi reconnectat).
     Retorna True quan hi ha connexió, False si s'esgota el temps."""
@@ -174,24 +166,8 @@ def executa_amb_reintents(data_override=None):
     sencer fins a REINTENTS_MATI vegades (els canals ja fets se salten).
 
     data_override: si es passa una data ('YYYY-MM-DD'), es preparen els posts
-    d'aquell dia concret i se salta la comprovació de cadència (per provar o
-    rescatar un dia a mà)."""
-    if not data_override:
-        # Freqüència: un post cada tres dies (reorientació 2026-06). Només es
-        # preparen posts quan la data del post (demà) cau en dia múltiple de 3 del
-        # calendari. Els altres dies, la passada no fa res.
-        dema = datetime.date.today() + datetime.timedelta(days=1)
-        if dema.toordinal() % 3 != 0:
-            proper_dia = proper_dia_publicacio(dema)
-            print("Avui no toca preparar posts: surten cada tres dies. "
-                  "Proper dia de publicació: {}.".format(
-                      proper_dia.isoformat()))
-            try:
-                from correu import envia_estat_cadencia
-                envia_estat_cadencia(dema.isoformat(), proper_dia.isoformat())
-            except Exception as e:
-                print("[mati] no s'ha pogut enviar l'estat de cadència: {}".format(e))
-            return 0
+    d'aquell dia concret en lloc dels de demà (per provar o rescatar un dia
+    a mà)."""
     # Esperar que el Wi-Fi estigui realment connectat abans de començar
     # (el Mac s'acaba de despertar i la xarxa pot trigar uns segons/minuts).
     espera_xarxa()
