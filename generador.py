@@ -314,7 +314,7 @@ def _cita_del_dia(data):
     les frases del llibre del dia. (None, títol) si el llibre no té cap frase."""
     ordre = _ordre_llibres()
     n = len(ordre)
-    comptador = data.toordinal() // 4      # nº de dia de llibre
+    comptador = data.toordinal()      # nº de dia de llibre: un per dia de publicació
     pos = comptador % n
     titol = ordre[pos]
     frases = _carrega_cites().get(titol) or []
