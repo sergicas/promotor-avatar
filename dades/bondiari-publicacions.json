@@ -1,5 +1,22 @@
 {
   "urls": {
+    "https://bondiari.com/noticia/feed-186o8wm": {
+      "published": {
+        "instagram": {
+          "at": "2026-08-15T06:32:57.058390+00:00",
+          "buffer_id": "6a800818b6f25b1be0985a57"
+        },
+        "linkedin": {
+          "at": "2026-08-15T06:32:55.784359+00:00",
+          "buffer_id": "6a80081751e3c666b6542721"
+        },
+        "twitter": {
+          "at": "2026-08-15T06:32:54.219996+00:00",
+          "buffer_id": "6a80081672d7f70e3e257a1a"
+        }
+      },
+      "title": "Pacients amb depressió valoraren els implants cerebrals menys invasius"
+    },
     "https://bondiari.com/noticia/feed-75quin": {
       "published": {
         "instagram": {
