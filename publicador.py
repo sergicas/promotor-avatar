@@ -512,6 +512,31 @@ def publica_post(
     return {"ok": False, "error": "Resposta inesperada de Buffer: {}".format(result)}
 
 
+def edita_text_post(post_id, text):
+    """Canvia només el text d'un post programat i conserva data i imatges."""
+    if not post_id:
+        return {"ok": False, "error": "Falta l'identificador del post."}
+    result = _buffer_graphql(
+        """
+        mutation($input: EditPostInput!) {
+          editPost(input: $input) {
+            __typename
+            ... on PostActionSuccess { post { id status text dueAt } }
+            ... on MutationError { message }
+          }
+        }
+        """,
+        {"input": {"id": post_id, "text": text}},
+    )
+    if "errors" in result:
+        msgs = "; ".join(e.get("message", "?") for e in result["errors"])
+        return {"ok": False, "error": msgs}
+    ep = (result.get("data") or {}).get("editPost") or {}
+    if ep.get("__typename") == "PostActionSuccess":
+        return {"ok": True, "post": ep.get("post") or {}}
+    return {"ok": False, "error": ep.get("message", "Resposta inesperada: {}".format(result))}
+
+
 def esborra_post(post_id):
     """Esborra un post de Buffer (només funciona mentre encara no s'ha
     publicat; un post ja enviat no es pot tocar per API).
