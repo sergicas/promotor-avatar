@@ -9,6 +9,8 @@ import os
 import re
 import time
 import datetime
+import unicodedata
+from difflib import SequenceMatcher
 
 import requests
 from google import genai
@@ -257,6 +259,9 @@ def fragments_reals_del_llibre(titol, n=4):
 from pathlib import Path
 
 FITXER_CITES = Path(__file__).parent / "dades" / "cites_llibres.json"
+FITXER_HISTORIAL = Path(__file__).parent / "dades" / "historial_posts.json"
+DIES_MEMORIA = 180
+LLINDAR_SIMILITUD = 0.48
 
 # Motiu visual per llibre: NOMÉS símbols, objectes o natura (MAI persones,
 # cares o mans; MAI text dins la imatge — els generadors els censuren). Cada
@@ -309,22 +314,119 @@ def _carrega_cites():
     return net
 
 
-def _cita_del_dia(data):
-    """Retorna (frase, títol_del_llibre) per al dia, rotant lentament dins de
-    les frases del llibre del dia. (None, títol) si el llibre no té cap frase."""
+def _normalitza_text(text):
+    """Versió comparable d'un post: sense accents, URLs, hashtags ni soroll."""
+    text = unicodedata.normalize("NFKD", text or "")
+    text = "".join(c for c in text if not unicodedata.combining(c)).lower()
+    text = re.sub(r"https?://\S+|www\.\S+", " ", text)
+    text = re.sub(r"#\w+", " ", text)
+    return " ".join(re.findall(r"[a-z0-9]+", text))
+
+
+def _carrega_historial(data=None):
+    """Llegeix només la memòria recent. Un fitxer corrupte mai atura la feina."""
+    try:
+        with open(FITXER_HISTORIAL, "r", encoding="utf-8") as f:
+            historial = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+    if not isinstance(historial, dict):
+        return {}
+    if data is None:
+        return historial
+    limit = data - datetime.timedelta(days=DIES_MEMORIA)
+    recent = {}
+    for data_str, entrada in historial.items():
+        try:
+            if datetime.date.fromisoformat(data_str) >= limit:
+                recent[data_str] = entrada
+        except (TypeError, ValueError):
+            continue
+    return recent
+
+
+def _textos_historial(historial):
+    textos = []
+    for entrada in (historial or {}).values():
+        posts = entrada.get("posts", {}) if isinstance(entrada, dict) else {}
+        for bloc in posts.values() if isinstance(posts, dict) else []:
+            text = bloc.get("text", "") if isinstance(bloc, dict) else bloc
+            if isinstance(text, str) and text.strip():
+                textos.append(text.strip())
+    return textos
+
+
+def _frase_ja_usada(frase, historial):
+    candidata = _normalitza_text(frase)
+    return any(candidata and candidata in _normalitza_text(text)
+               for text in _textos_historial(historial))
+
+
+def _bloc_historial_per_prompt(historial, maxim=18):
+    """Mostra al model exemples recents que no pot reciclar ni parafrasejar."""
+    linies = []
+    for data_str in sorted(historial or {}, reverse=True):
+        entrada = historial[data_str]
+        posts = entrada.get("posts", {}) if isinstance(entrada, dict) else {}
+        text = ""
+        for bloc in posts.values() if isinstance(posts, dict) else []:
+            text = bloc.get("text", "") if isinstance(bloc, dict) else bloc
+            if text:
+                break
+        if text:
+            linies.append("- {}: {}".format(data_str, " ".join(text.split())[:360]))
+        if len(linies) >= maxim:
+            break
+    return "\n".join(linies) if linies else "(Encara no hi ha posts previs desats.)"
+
+
+def _violacions_repeticio(posts, historial):
+    """Detecta còpies i paràfrasis massa properes dels darrers 180 dies."""
+    antics = [_normalitza_text(t) for t in _textos_historial(historial)]
+    violacions = []
+    for plataforma in ["linkedin", "twitter", "instagram"]:
+        nou = (posts.get(plataforma) or {}).get("text", "")
+        nou_net = _normalitza_text(nou)
+        if not nou_net:
+            continue
+        paraules_noves = set(nou_net.split())
+        pitjor = 0.0
+        for antic_net in antics:
+            if not antic_net:
+                continue
+            similitud = SequenceMatcher(None, nou_net, antic_net).ratio()
+            paraules_antigues = set(antic_net.split())
+            unio = paraules_noves | paraules_antigues
+            jaccard = len(paraules_noves & paraules_antigues) / len(unio) if unio else 0
+            pitjor = max(pitjor, similitud, jaccard)
+        if pitjor >= LLINDAR_SIMILITUD:
+            violacions.append("{}: repetició amb l'historial ({:.0%})".format(
+                plataforma, pitjor))
+    return violacions
+
+
+def _cita_del_dia(data, historial=None):
+    """Retorna una cita que no hagi sortit en els darrers 180 dies."""
     ordre = _ordre_llibres()
     n = len(ordre)
     comptador = data.toordinal()      # nº de dia de llibre: un per dia de publicació
     pos = comptador % n
-    titol = ordre[pos]
-    frases = _carrega_cites().get(titol) or []
-    if not frases:
-        return None, titol
-    # Quantes vegades ha sortit AQUEST llibre fins avui (comptant les seves
-    # aparicions dins de l'ordre de rotació, que pot ser més d'una per cicle si
-    # és el prioritari). Així la frase avança a cada aparició i passen totes.
-    aparicio = (comptador // n) * ordre.count(titol) + ordre[:pos].count(titol)
-    return frases[aparicio % len(frases)], titol
+    titol_preferit = ordre[pos]
+    historial = historial if historial is not None else _carrega_historial(data)
+    cites = _carrega_cites()
+    titols = []
+    for offset in range(n):
+        titol = ordre[(pos + offset) % n]
+        if titol not in titols:
+            titols.append(titol)
+    for titol in titols:
+        frases = cites.get(titol) or []
+        inici = comptador % len(frases) if frases else 0
+        for offset in range(len(frases)):
+            frase = frases[(inici + offset) % len(frases)]
+            if not _frase_ja_usada(frase, historial):
+                return frase, titol
+    return None, titol_preferit
 
 
 def _post_cita(frase, titol):
@@ -334,13 +436,13 @@ def _post_cita(frase, titol):
     return "«{}»\n\n— {}".format(neta, titol)
 
 
-def _genera_posts_cita(data):
+def _genera_posts_cita(data, historial=None):
     """Dia de llibre amb el format nou: la mateixa FRASE del llibre als tres
     canals, amb la cita del títol i una imatge evocadora del llibre. No fa cap
     crida a cap model: el text és literal i triat per Sergi.
     Si el llibre del dia encara no té cap frase al banc, retorna
     {'sense_cita': True, 'llibre': títol} perquè qui crida decideixi el pla B."""
-    frase, titol = _cita_del_dia(data)
+    frase, titol = _cita_del_dia(data, historial)
     if not frase:
         return {"sense_cita": True, "llibre": titol}
     bloc = {"text": _post_cita(frase, titol),
@@ -479,7 +581,7 @@ def consulta_avatar_del_dia(data):
     return ""
 
 
-def _construir_prompt(data, material="", tipus_material="cap"):
+def _construir_prompt(data, material="", tipus_material="cap", historial=None):
     """Construeix el prompt complet per a Gemini segons la font del dia:
     'fragments' (text literal del llibre), 'avatar' (resposta de l'Avatar)
     o 'cap' (règim estricte de només-catàleg)."""
@@ -519,6 +621,11 @@ def _construir_prompt(data, material="", tipus_material="cap"):
 Escrius de manera càlida i propera, com un amic que recomana una bona història. Mai com un professor ni com un anunci.
 
 OBJECTIU: que la gent tingui ganes de llegir els llibres de Sergi, explicant-los de manera senzilla i atractiva.
+
+MEMÒRIA ANTIREPETICIÓ (darrers {dies_memoria} dies):
+Els exemples següents ja s'han publicat. No en copiïs la frase, l'obertura,
+l'argument, la metàfora ni una paràfrasi recognoscible. Busca un angle realment nou.
+{historial}
 
 {cataleg}
 
@@ -592,6 +699,8 @@ Respon ÚNICAMENT amb JSON vàlid, sense cap text addicional, en aquest format e
         idx=idx_mode,
         mode=nom_mode,
         llibre=llibre_del_dia,
+        dies_memoria=DIES_MEMORIA,
+        historial=_bloc_historial_per_prompt(historial or {}),
     )
 
     # El material de l'Avatar s'insereix al final (fora del .format, perquè
@@ -717,7 +826,7 @@ def _get_mode_arrel(data):
     return idx, ARREL_MODES[idx]
 
 
-def _construir_prompt_arrel(data):
+def _construir_prompt_arrel(data, historial=None):
     """Prompt per als posts d'Arrel: mateixa veu sòbria i impersonal que la
     resta, però promocionant l'app (no els llibres), amb CTA a l'App Store."""
     idx_mode, nom_mode = _get_mode_arrel(data)
@@ -727,6 +836,11 @@ def _construir_prompt_arrel(data):
 Escrius de manera clara, sòbria i directa. Mai com un anunci cridaner ni com un gurú del benestar.
 
 OBJECTIU: que la gent tingui ganes de baixar Arrel, explicant amb honestedat què fa i per què és diferent.
+
+MEMÒRIA ANTIREPETICIÓ (darrers {dies_memoria} dies):
+Els exemples següents ja s'han publicat. No en copiïs la frase, l'obertura,
+l'argument, la metàfora ni una paràfrasi recognoscible. Busca un angle realment nou.
+{historial}
 
 {brief}
 
@@ -794,6 +908,8 @@ Respon ÚNICAMENT amb JSON vàlid, sense cap text addicional, en aquest format e
         url=ARREL_URL,
         cta_ig=ARREL_CTA_IG,
         hashtags=ARREL_HASHTAGS,
+        dies_memoria=DIES_MEMORIA,
+        historial=_bloc_historial_per_prompt(historial or {}),
     )
     return prompt
 
@@ -826,11 +942,11 @@ def _finalitza_arrel(posts):
         ig["text"] = t
 
 
-def _genera_posts_arrel(client, data):
+def _genera_posts_arrel(client, data, historial=None):
     """Genera els 3 posts d'Arrel amb el mateix control de qualitat que els
     literaris (fins a 3 intents, es queda el més net), però NO afegeix la web
     dels llibres ni els hashtags de llibres."""
-    prompt = _construir_prompt_arrel(data)
+    prompt = _construir_prompt_arrel(data, historial)
     millor = None
     millor_violacions = None
     for intent in range(3):
@@ -838,7 +954,8 @@ def _genera_posts_arrel(client, data):
         if "error" in resultat:
             millor = resultat
             break
-        violacions = _violacions_estil(resultat)
+        violacions = _violacions_estil(resultat) + _violacions_repeticio(
+            resultat, historial or {})
         if not violacions:
             millor, millor_violacions = resultat, []
             break
@@ -851,6 +968,8 @@ def _genera_posts_arrel(client, data):
         return {"error": "Gemini no ha retornat res (Arrel) en cap dels 3 intents."}
     if "error" in millor:
         return millor
+    if millor_violacions and any("repetició" in v for v in millor_violacions):
+        return {"error": "Gemini no ha pogut crear posts d'Arrel prou diferents de l'historial."}
     _finalitza_arrel(millor)
     # Marca perquè la resta del sistema no hi afegeixi la web dels llibres.
     millor["campanya"] = "arrel"
@@ -870,16 +989,6 @@ def genera_posts_dia(data_str=None):
         Dict amb claus: linkedin, twitter, instagram, mode, tema
         En cas d'error retorna dict amb clau 'error'.
     """
-    # Obtenir la clau d'API (variable d'entorn o dades/keys.json)
-    api_key = get_key("GEMINI_API_KEY")
-    if not api_key:
-        return {
-            "error": (
-                "Falta GEMINI_API_KEY. Afegeix-la a dades/keys.json "
-                "o a ~/.zshrc: export GEMINI_API_KEY='la_teva_clau'"
-            )
-        }
-
     # Parsejar la data
     try:
         if data_str:
@@ -889,26 +998,30 @@ def genera_posts_dia(data_str=None):
     except ValueError:
         return {"error": "Format de data invàlid: '{}'. Usa YYYY-MM-DD.".format(data_str)}
 
-    # Configurar client Gemini (nou SDK google-genai)
+    historial = _carrega_historial(data)
+
+    # DIES DE LLIBRE (format nou, decisió Sergi 2026-07-03): el post és una
+    # FRASE literal del llibre + la cita del títol + una imatge evocadora.
+    # No necessita Gemini: una clau caducada no bloqueja una cita nova.
+    if not _es_dia_arrel(data):
+        posts_cita = _genera_posts_cita(data, historial)
+        if not posts_cita.get("sense_cita"):
+            return posts_cita
+        print("[generador] No queda cap cita inèdita dins la memòria de {} dies; "
+              "recorro al generador de discurs com a xarxa de seguretat.".format(
+                  DIES_MEMORIA))
+
+    # Gemini només és necessari per a Arrel o si s'han exhaurit les cites noves.
+    api_key = get_key("GEMINI_API_KEY")
+    if not api_key:
+        return {"error": "Falta GEMINI_API_KEY al secret de GitHub Actions."}
     try:
         client = genai.Client(api_key=api_key)
     except Exception as e:
         return {"error": "Error configurant Gemini: {}".format(e)}
 
-    # CARRIL ARREL: en els dies alterns, els posts promocionen l'app Arrel
-    # (longevitat), no els llibres. Té veu, brief i enllaç (App Store) propis.
     if _es_dia_arrel(data):
-        return _genera_posts_arrel(client, data)
-
-    # DIES DE LLIBRE (format nou, decisió Sergi 2026-07-03): el post és una
-    # FRASE literal del llibre + la cita del títol + una imatge evocadora.
-    # No hi ha discurs ni model pel mig; la frase la tria Sergi.
-    posts_cita = _genera_posts_cita(data)
-    if not posts_cita.get("sense_cita"):
-        return posts_cita
-    print("[generador] El llibre «{}» encara no té cap frase al banc "
-          "(dades/cites_llibres.json); recorro al generador de discurs com a "
-          "xarxa de seguretat.".format(posts_cita.get("llibre")))
+        return _genera_posts_arrel(client, data, historial)
 
     # 1) Contingut general: els posts ja no surten del corpus personal ni del
     #    catàleg de llibres. Es generen directament a partir del tema del dia.
@@ -916,7 +1029,7 @@ def genera_posts_dia(data_str=None):
     material, tipus_material = "", "cap"
 
     # 2) Generar amb control de qualitat: fins a 3 intents, quedant-se el més net
-    prompt = _construir_prompt(data, material, tipus_material)
+    prompt = _construir_prompt(data, material, tipus_material, historial)
     millor = None
     millor_violacions = None
     for intent in range(3):
@@ -926,7 +1039,8 @@ def genera_posts_dia(data_str=None):
             # repetir-ho aquí (el bucle és per a l'estil, no per a la connexió).
             millor = resultat
             break
-        violacions = _violacions_estil(resultat)
+        violacions = _violacions_estil(resultat) + _violacions_repeticio(
+            resultat, historial)
         if not violacions:
             millor, millor_violacions = resultat, []
             break
@@ -939,6 +1053,8 @@ def genera_posts_dia(data_str=None):
         return {"error": "Gemini no ha retornat res en cap dels 3 intents."}
     if "error" in millor:
         return millor
+    if millor_violacions and any("repetició" in v for v in millor_violacions):
+        return {"error": "Gemini no ha pogut crear posts prou diferents de l'historial."}
     if millor_violacions:
         print("[generador] AVÍS: cap intent perfecte; es publica el millor "
               "({} violacions).".format(len(millor_violacions)))

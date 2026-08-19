@@ -17,9 +17,12 @@ Terminal sí.
 """
 
 import datetime
+import json
+import os
 import socket
 import sys
 import time
+from pathlib import Path
 
 from promotor import PLATAFORMES, _ja_publicat, _marcar_publicat, _obtenir_posts_dia
 from publicador import publica_post
@@ -40,6 +43,51 @@ SERVIDORS_CLAU = [
 ]
 ESPERA_XARXA_INTENTS = 30      # fins a 30 intents…
 ESPERA_XARXA_INTERVAL = 10     # …cada 10s = fins a 5 minuts esperant la xarxa
+FITXER_HISTORIAL = Path(__file__).parent / "dades" / "historial_posts.json"
+
+
+def _data_valida_des_de(data_str, limit):
+    try:
+        return datetime.date.fromisoformat(data_str) >= limit
+    except (TypeError, ValueError):
+        return False
+
+
+def _desa_historial(data_str, posts, items):
+    """Desa els textos només quan Buffer ha acceptat tots els canals."""
+    buffer_items = [it for it in items if it.get("canal") in PLATAFORMES]
+    if not buffer_items or not all(it.get("ok") for it in buffer_items):
+        return
+    if all(it.get("skip") for it in buffer_items):
+        return
+    try:
+        with open(FITXER_HISTORIAL, "r", encoding="utf-8") as f:
+            historial = json.load(f)
+        if not isinstance(historial, dict):
+            historial = {}
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        historial = {}
+    historial[data_str] = {
+        "campanya": posts.get("campanya", "general"),
+        "tema": posts.get("tema", ""),
+        "posts": {
+            canal: {
+                "text": (posts.get(canal) or {}).get("text", ""),
+                "imatge": (posts.get(canal) or {}).get("imatge", ""),
+            }
+            for canal in PLATAFORMES
+        },
+    }
+    limit = datetime.date.fromisoformat(data_str) - datetime.timedelta(days=190)
+    historial = {
+        dia: entrada for dia, entrada in historial.items()
+        if _data_valida_des_de(dia, limit)
+    }
+    FITXER_HISTORIAL.parent.mkdir(parents=True, exist_ok=True)
+    with open(FITXER_HISTORIAL, "w", encoding="utf-8") as f:
+        json.dump(historial, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    print("✓ Memòria antirepetició actualitzada.")
 
 
 def espera_xarxa():
@@ -114,6 +162,7 @@ def executa(data_override=None):
 
     buffer_items = [it for it in items if it.get("canal") in PLATAFORMES]
     buffer_ja_preparat = bool(buffer_items) and all(it.get("skip") for it in buffer_items)
+    _desa_historial(data_str, posts, items)
 
     # TikTok: publica directament (DIRECT_POST) ara mateix, amb el vídeo de Veo 2.
     # Usa el text d'Instagram (el més visual) com a peu de vídeo.
@@ -122,7 +171,12 @@ def executa(data_override=None):
     ig_bloc = posts.get("instagram") or {}
     ig_text = ig_bloc.get("text", "")
     imatge_ig = ig_bloc.get("imatge") or posts.get("tema") or ""
-    if buffer_ja_preparat:
+    nomes_buffer = os.environ.get("NOMES_BUFFER", "").strip().lower() in (
+        "1", "true", "sí", "si", "yes"
+    )
+    if nomes_buffer:
+        print("── TikTok omès: aquesta execució manual és només per a Buffer ──")
+    elif buffer_ja_preparat:
         print("── TikTok omès: la passada és un reintent i Buffer ja tenia tots els posts ──")
         items.append({
             "canal": "tiktok",
