@@ -48,25 +48,28 @@ CATÀLEG DE LLIBRES DE SERGI CASTILLO LAPEIRA:
 
 - Nara (novel·la fantasia/CF): La Nara té setze anys i, sota pressió, li broten ales de papallona.
   Trauma, identitat, amistat, redempció.
-  CAT: amazon.es/dp/B0FD3DKZLD · ES: amazon.es/dp/8409738740 · EN: amazon.es/dp/8409744317
+  CAT: https://www.amazon.es/dp/B0FD3DKZLD · ES: https://www.amazon.es/dp/8409738740 · EN: https://www.amazon.es/dp/8409744317
 
 - La vida d'en George (novel·la CF): En George és un humà sintètic que ens fa de mirall.
-  CAT: amazon.es/dp/B0CKZMKFZX
+  CAT: https://www.amazon.es/dp/B0CKZMKFZX
 
 - Inspector Montoliu (policíaca): Un policia a punt de jubilar-se, cadàvers, bessó desconegut.
-  CAT: amazon.es/dp/B0CRJPJ98P
+  CAT: https://www.amazon.es/dp/B0CRJPJ98P
 
 - Una Història Sentimental (dramàtica): Cinc joves Generació Z al llarg d'una dècada.
-  CAT: amazon.es/dp/B0CZRQFCNZ
+  CAT: https://www.amazon.es/dp/B0CZRQFCNZ
 
 - Contes a la vora del gel (contes): 20 contes sobre natura i societat.
-  CAT: amazon.es/dp/B0D2ZCXZ8M
+  CAT: https://www.amazon.es/dp/B0D2ZCXZ8M
 
 - Ànima Material (poesia): 47 poemes des de l'espai íntim.
-  CAT: amazon.es/dp/B0CQYZPZGC
+  CAT: https://www.amazon.es/dp/B0CQYZPZGC
 
 - Ètica i estètica de l'instant (assaig): L'ara etern i efímer.
-  CAT: amazon.es/dp/B0DP62B81G
+  CAT: https://www.amazon.es/dp/B0DP62B81G
+
+- Acadèmia Gaia (novel·la de ciència-ficció): Barcelona, 2050; misteri, humor i coneixement prohibit.
+  CAT: https://www.amazon.es/dp/B0H5XLJ6FQ
 
 PROJECTES ACTIUS:
 - El Bon Diari (bondiari.com) — periodisme constructiu
@@ -130,9 +133,18 @@ WEB_DOMINI = "sergicastillo.com"
 # bio (on sí hi ha l'enllaç actiu) i no es posa https:// (quedaria lleig i inert).
 WEB_IG = "sergicastillo.com · enllaç a la bio"
 
-# Es manté el peu amb la web al final de cada post (decisió Sergi 2026-06-20).
-# Posa-ho a False si algun dia no vols el peu sergicastillo.com.
-INCLOURE_WEB = True
+# Enllaç de compra de l'edició catalana de cada llibre. Aquesta taula és la
+# font de veritat del postprocessat: els enllaços no depenen de Gemini.
+AMAZON_LLIBRES = {
+    "Nara": "https://www.amazon.es/dp/B0FD3DKZLD",
+    "La vida d'en George": "https://www.amazon.es/dp/B0CKZMKFZX",
+    "Inspector Montoliu": "https://www.amazon.es/dp/B0CRJPJ98P",
+    "Una Història Sentimental": "https://www.amazon.es/dp/B0CZRQFCNZ",
+    "Contes a la vora del gel": "https://www.amazon.es/dp/B0D2ZCXZ8M",
+    "Ànima Material": "https://www.amazon.es/dp/B0CQYZPZGC",
+    "Ètica i estètica de l'instant": "https://www.amazon.es/dp/B0DP62B81G",
+    "Acadèmia Gaia": "https://www.amazon.es/dp/B0H5XLJ6FQ",
+}
 
 
 def _normalitza_web(t):
@@ -183,6 +195,59 @@ def afegeix_web_a_posts(posts):
             if nou != bloc["text"]:
                 bloc["text"] = nou
                 canviat = True
+    return canviat
+
+
+def _titols_esmentats(text, titol_forcat=None):
+    """Retorna els llibres citats al text, o el títol explícit d'una cita."""
+    titols = []
+    if titol_forcat in AMAZON_LLIBRES:
+        titols.append(titol_forcat)
+    text_net = _normalitza_text(text)
+    for titol in AMAZON_LLIBRES:
+        titol_net = _normalitza_text(titol)
+        patro = r"(?<!\w){}(?!\w)".format(re.escape(titol_net))
+        if titol not in titols and re.search(patro, text_net):
+            titols.append(titol)
+    return titols
+
+
+def _text_amb_amazon(text, plataforma, titol_forcat=None):
+    """Afegeix els links d'Amazon dels llibres citats, sense duplicar-los."""
+    t = (text or "").rstrip()
+    urls = [
+        AMAZON_LLIBRES[titol]
+        for titol in _titols_esmentats(t, titol_forcat)
+        if AMAZON_LLIBRES[titol].lower() not in t.lower()
+    ]
+    if not urls:
+        return t
+    if plataforma == "instagram":
+        linies = t.split("\n")
+        i = len(linies)
+        while i > 0 and (not linies[i - 1].strip()
+                         or linies[i - 1].lstrip().startswith("#")):
+            i -= 1
+        cos = "\n".join(linies[:i]).rstrip()
+        hashtags = "\n".join(linies[i:]).strip()
+        cos += "\n\n" + "\n".join(urls)
+        return cos + ("\n\n" + hashtags if hashtags else "")
+    separador = " " if plataforma == "twitter" else "\n\n"
+    return t + separador + (" ".join(urls) if plataforma == "twitter" else "\n".join(urls))
+
+
+def finalitza_enllacos_posts(posts, titol_forcat=None):
+    """Garanteix web sempre i Amazon quan el post cita algun llibre."""
+    canviat = False
+    for plataforma in ["linkedin", "twitter", "instagram"]:
+        bloc = posts.get(plataforma)
+        if not isinstance(bloc, dict) or not bloc.get("text"):
+            continue
+        nou = _text_amb_amazon(bloc["text"], plataforma, titol_forcat)
+        nou = _text_amb_web(nou, plataforma)
+        if nou != bloc["text"]:
+            bloc["text"] = nou
+            canviat = True
     return canviat
 
 
@@ -253,8 +318,8 @@ def fragments_reals_del_llibre(titol, n=4):
 # BANC DE CITES DELS LLIBRES (frases triades per Sergi)
 # ---------------------------------------------------------------------------
 # Els dies de llibre, el post és SENZILL: una FRASE LITERAL d'un llibre, la
-# cita que diu de quin llibre és, i una imatge evocadora. Sense discurs, sense
-# web, sense hashtags (decisió Sergi 2026-07-03). Les frases les tria Sergi i
+# cita que diu de quin llibre és, els enllaços de compra/web i una imatge
+# evocadora. Sense discurs ni hashtags. Les frases les tria Sergi i
 # viuen a dades/cites_llibres.json ({ "Títol del llibre": ["frase", ...] }).
 from pathlib import Path
 
@@ -430,8 +495,7 @@ def _cita_del_dia(data, historial=None):
 
 
 def _post_cita(frase, titol):
-    """El text del post: la frase entre cometes i la cita del llibre a sota.
-    Res més (ni web, ni hashtags, ni enllaços)."""
+    """El text base del post: la frase entre cometes i el títol a sota."""
     neta = frase.strip().strip('«»"“”').strip()
     return "«{}»\n\n— {}".format(neta, titol)
 
@@ -447,10 +511,7 @@ def _genera_posts_cita(data, historial=None):
         return {"sense_cita": True, "llibre": titol}
     bloc = {"text": _post_cita(frase, titol),
             "imatge": MOTIUS_IMATGE.get(titol, MOTIU_IMATGE_PER_DEFECTE)}
-    if len(bloc["text"]) > 270:
-        print("[generador] AVÍS: la frase de «{}» passa de 270 caràcters ({}); "
-              "a X pot no cabre.".format(titol, len(bloc["text"])))
-    return {
+    posts = {
         "linkedin": dict(bloc),
         "twitter": dict(bloc),
         "instagram": dict(bloc),
@@ -458,6 +519,11 @@ def _genera_posts_cita(data, historial=None):
         "tema": "Una frase de «{}»".format(titol),
         "campanya": "cita",
     }
+    finalitza_enllacos_posts(posts, titol_forcat=titol)
+    if len(posts["twitter"]["text"]) > 270:
+        print("[generador] AVÍS: la frase de «{}» passa de 270 caràcters ({}); "
+              "a X pot no cabre.".format(titol, len(posts["twitter"]["text"])))
+    return posts
 
 
 # ---------------------------------------------------------------------------
@@ -971,7 +1037,8 @@ def _genera_posts_arrel(client, data, historial=None):
     if millor_violacions and any("repetició" in v for v in millor_violacions):
         return {"error": "Gemini no ha pogut crear posts d'Arrel prou diferents de l'historial."}
     _finalitza_arrel(millor)
-    # Marca perquè la resta del sistema no hi afegeixi la web dels llibres.
+    finalitza_enllacos_posts(millor)
+    # Marca la campanya després d'haver garantit també la web de Sergi.
     millor["campanya"] = "arrel"
     return millor
 
@@ -1066,10 +1133,8 @@ def genera_posts_dia(data_str=None):
             "\n\n#llibres #lectura #novel·la #llegir #LlibresEnCatalà"
         )
 
-    # Garantia final: només afegim la web si està activat. Per defecte, no:
-    # els posts diaris ja no són promocionals (vegeu INCLOURE_WEB a dalt).
-    if INCLOURE_WEB:
-        afegeix_web_a_posts(millor)
+    # Garantia final: web sempre, i Amazon si es menciona algun llibre.
+    finalitza_enllacos_posts(millor)
 
     return millor
 
