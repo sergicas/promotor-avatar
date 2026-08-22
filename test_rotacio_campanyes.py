@@ -21,11 +21,13 @@ class RotacioCampanyesTest(unittest.TestCase):
     def setUp(self):
         self.dia = datetime.date(2026, 8, 24)
 
-    def test_despres_arrel_toca_llibre(self):
+    def test_despres_arrel_toca_sutsumu(self):
         historial = {
             "2026-08-23": {"campanya": "arrel", "tema": "Rigidesa"},
         }
-        self.assertFalse(generador._es_dia_arrel(self.dia, historial))
+        self.assertEqual(
+            generador._tria_campanya(self.dia, historial), "sutsumu"
+        )
 
     def test_despres_llibre_toca_arrel(self):
         historial = {
@@ -43,6 +45,52 @@ class RotacioCampanyesTest(unittest.TestCase):
             "2026-08-23": {"campanya": "arrel"},
         }
         self.assertFalse(generador._es_dia_arrel(self.dia, historial))
+
+    def test_rotacio_inclou_tots_els_projectes_sense_repeticions(self):
+        ordre = ("cita", "arrel", "sutsumu", "genikids", "bondiari")
+        for actual, seguent in zip(ordre, ordre[1:] + ordre[:1]):
+            with self.subTest(actual=actual):
+                historial = {"2026-08-23": {"campanya": actual}}
+                triada = generador._tria_campanya(self.dia, historial)
+                self.assertEqual(triada, seguent)
+                self.assertNotEqual(triada, actual)
+
+    def test_cataleg_te_els_tres_projectes_addicionals(self):
+        self.assertEqual(
+            set(generador.PROJECTES_PROMOCIO),
+            {"sutsumu", "genikids", "bondiari"},
+        )
+
+    def test_prompts_usen_nomes_enllacos_verificats(self):
+        sutsumu = generador._construir_prompt_projecte(
+            self.dia, "sutsumu", {}
+        )
+        genikids = generador._construir_prompt_projecte(
+            self.dia, "genikids", {}
+        )
+        bondiari = generador._construir_prompt_projecte(
+            self.dia, "bondiari", {}
+        )
+        self.assertIn("https://apps.apple.com/app/sutsumu/id6776719183", sutsumu)
+        self.assertIn("https://sergicastillo.com", genikids)
+        self.assertNotIn("apps.apple.com", genikids)
+        self.assertIn("https://bondiari.com", bondiari)
+
+    def test_finalitzacio_afegeix_producte_i_web(self):
+        posts = {
+            "linkedin": {"text": "Un arxiu personal ha de donar calma."},
+            "twitter": {"text": "Guardar menys també pot ser conservar millor."},
+            "instagram": {"text": "Una biblioteca pròpia per als textos importants."},
+        }
+        generador._finalitza_projecte(posts, "sutsumu")
+        for plataforma in ("linkedin", "twitter"):
+            text = posts[plataforma]["text"]
+            self.assertIn("https://apps.apple.com/app/sutsumu/id6776719183", text)
+            self.assertIn("https://sergicastillo.com", text)
+        self.assertIn("Sutsumu · disponible a l'App Store", posts["instagram"]["text"])
+        self.assertIn("sergicastillo.com · enllaç a la bio", posts["instagram"]["text"])
+        self.assertIn("#Sutsumu", posts["instagram"]["text"])
+        self.assertEqual(posts["campanya"], "sutsumu")
 
     def test_no_repeteix_el_mateix_llibre_en_dues_cites_seguides(self):
         ordre = generador._ordre_llibres()

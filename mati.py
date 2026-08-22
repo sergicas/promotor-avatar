@@ -166,8 +166,8 @@ def executa(data_override=None):
 
     # TikTok: publica directament (DIRECT_POST) ara mateix, amb el vídeo de Veo 2.
     # Usa el text d'Instagram (el més visual) com a peu de vídeo.
-    # Els dies d'Arrel (campanya='arrel') NO van a TikTok de moment: Arrel només
-    # es promociona a X, LinkedIn i Instagram (decisió 2026-07-01).
+    # Les campanyes de llibres i projectes no van a TikTok de moment: només es
+    # programen a X, LinkedIn i Instagram via Buffer.
     ig_bloc = posts.get("instagram") or {}
     ig_text = ig_bloc.get("text", "")
     imatge_ig = ig_bloc.get("imatge") or posts.get("tema") or ""
@@ -185,8 +185,15 @@ def executa(data_override=None):
             "skip": True,
             "msg": "Passada duplicada omesa.",
         })
-    elif posts.get("campanya") in ("arrel", "cita"):
-        motiu = "Arrel" if posts.get("campanya") == "arrel" else "cita de llibre"
+    elif posts.get("campanya") in ("arrel", "cita", "sutsumu", "genikids", "bondiari"):
+        noms = {
+            "arrel": "Arrel",
+            "cita": "cita de llibre",
+            "sutsumu": "Sutsumu",
+            "genikids": "GeniKids",
+            "bondiari": "El Bon Diari",
+        }
+        motiu = noms.get(posts.get("campanya"), posts.get("campanya"))
         print("── TikTok omès (dia {}: només X/LinkedIn/Instagram) ──".format(motiu))
     elif ig_text:
         print("── TikTok ──")
