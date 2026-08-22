@@ -73,6 +73,8 @@ CATÀLEG DE LLIBRES DE SERGI CASTILLO LAPEIRA:
 
 PROJECTES ACTIUS:
 - El Bon Diari (bondiari.com) — periodisme constructiu
+- Sutsumu (sutsumu.com) — arxiu personal curat per a iPhone
+- GeniKids — joc infantil en català de creativitat, cognició i memòria
 - Curs Filosofia i IA (filoia.netlify.app)
 - Màster UB, TFM "El Logos Intraduïble"
 - Avatar conversacional (sergicastillo.com)
@@ -876,13 +878,12 @@ def _violacions_estil(posts):
 
 
 # ===========================================================================
-# CARRIL ARREL — promoció de l'app Arrel (longevitat) en dies alterns
+# CAMPANYA ARREL — promoció de l'app Arrel (longevitat)
 # ===========================================================================
 # Arrel NO és un llibre ni surt de l'Avatar: és un producte propi (app gratuïta
-# de longevitat). En els dies de publicació alterns, els 3 posts parlen d'Arrel
-# amb la seva veu (anti-soroll) i el seu enllaç (App Store), no de la web dels
-# llibres. Decisió usuari 2026-07-01: 1 de cada 2 publicacions és d'Arrel; CTA =
-# App Store (baixada directa).
+# de longevitat). Té un torn dins la rotació de llibres i projectes. Quan toca,
+# els 3 posts parlen d'Arrel amb la seva veu (anti-soroll) i el seu enllaç de
+# baixada directa a l'App Store.
 
 # Enllaç curt i universal a la fitxa de l'App Store (sense codi de país).
 ARREL_URL = "https://apps.apple.com/app/id6758808269"
@@ -919,24 +920,104 @@ ARREL_MODES = [
     "Una observació certa sobre com la rigidesa i la repetició envelleixen, i com Arrel hi intervé.",
 ]
 
+# Rotació completa de les línies editorials. L'historial real de Buffer marca
+# quin element toca després; per tant, una execució perduda o manual no trenca
+# l'ordre ni provoca dues campanyes iguals seguides.
+CAMPANYES_ROTACIO = ("cita", "arrel", "sutsumu", "genikids", "bondiari")
+
+PROJECTES_PROMOCIO = {
+    "sutsumu": {
+        "nom": "Sutsumu",
+        "url": "https://apps.apple.com/app/sutsumu/id6776719183",
+        "cta_ig": "Sutsumu · disponible a l'App Store",
+        "hashtags": "#Sutsumu #arxiupersonal #notes #escriptura #privadesa",
+        "brief": (
+            "Sutsumu és un arxiu personal curat per a iPhone. Dona un lloc "
+            "propi a notes, textos i documents importants, com una biblioteca "
+            "personal. Funciona en local des del primer dia, el compte és "
+            "opcional, permet organitzar col·leccions i no fa rastreig. No és "
+            "una app de productivitat accelerada ni una xarxa social."
+        ),
+        "angles": (
+            "La diferència entre acumular notes i conservar només allò que importa.",
+            "La calma d'un arxiu personal sense indicadors, soroll ni rastreig.",
+            "Per què els textos personals mereixen el tracte d'una biblioteca pròpia.",
+            "Mode local, compte opcional i privadesa com a decisions de disseny.",
+        ),
+        "visual": (
+            "llibres, quaderns, carpetes, prestatgeries, paper, capses d'arxiu "
+            "o una taula d'escriptura ordenada"
+        ),
+    },
+    "genikids": {
+        "nom": "GeniKids",
+        # Encara no hi ha una URL pública pròpia confirmada al projecte. La web
+        # de Sergi és el destí segur i evita inventar un enllaç de descàrrega.
+        "url": WEB,
+        "cta_ig": "GeniKids · més informació a la bio",
+        "hashtags": "#GeniKids #infancia #creativitat #memoria #jocencatala",
+        "brief": (
+            "GeniKids és un joc infantil en català per imaginar, pensar i "
+            "crear. L'infant tria una missió, resol reptes de cognició i "
+            "memòria sense puntuacions ni presses, crea una criatura i acaba "
+            "amb un conte. Té instruccions narrades, reforç positiu i no "
+            "castiga els errors. No s'han d'inventar funcions ni preus."
+        ),
+        "angles": (
+            "Aprendre sense puntuacions, presses ni por d'equivocar-se.",
+            "Com una missió acaba convertida en una criatura i un conte propis.",
+            "El valor de sentir les instruccions i poder jugar abans de saber llegir.",
+            "Memòria, patrons i creativitat dins d'una aventura tranquil·la.",
+        ),
+        "visual": (
+            "formes de colors, estrelles, un drac amable, peces de joc, "
+            "constel·lacions o un bosc il·lustrat; sense representar infants"
+        ),
+    },
+    "bondiari": {
+        "nom": "El Bon Diari",
+        "url": "https://bondiari.com",
+        "cta_ig": "El Bon Diari · bondiari.com",
+        "hashtags": "#ElBonDiari #Bondiari #noticies #Catalunya #actualitat",
+        "brief": (
+            "El Bon Diari és un diari digital de periodisme constructiu. "
+            "Selecciona actualitat rellevant i l'explica amb context, dades "
+            "verificables i una mirada útil, sense convertir les notícies en "
+            "un flux de por o indignació. No s'han d'inventar notícies concretes."
+        ),
+        "angles": (
+            "Per què informar no hauria de significar alimentar l'angoixa.",
+            "La diferència entre una notícia útil i un titular fet només per provocar.",
+            "Com el context ajuda a entendre l'actualitat i prendre criteri.",
+            "Periodisme constructiu: explicar problemes sense amagar les respostes possibles.",
+        ),
+        "visual": (
+            "un diari obert, una redacció buida, una lupa sobre documents, "
+            "un quadern de periodista o una ciutat a primera hora"
+        ),
+    },
+}
+
+
+def _tria_campanya(data, historial=None):
+    """Campanya següent de la rotació, basada en l'últim post publicat."""
+    anterior = _ultima_campanya(historial, data)
+    aliases = {"general": "cita", "llibre": "cita"}
+    anterior = aliases.get(anterior, anterior)
+    if anterior in CAMPANYES_ROTACIO:
+        pos = CAMPANYES_ROTACIO.index(anterior)
+        return CAMPANYES_ROTACIO[(pos + 1) % len(CAMPANYES_ROTACIO)]
+    return CAMPANYES_ROTACIO[data.toordinal() % len(CAMPANYES_ROTACIO)]
+
 
 def _es_dia_arrel(data, historial=None):
-    """Alterna Arrel i llibres segons l'última publicació real.
-
-    La fórmula anterior agrupava les dates de dues en dues i podia produir dos
-    dies consecutius d'Arrel. La memòria de Buffer és ara la font de veritat:
-    després d'Arrel toca llibre; després de qualsevol altra campanya toca
-    Arrel. Sense historial, la paritat diària manté igualment l'alternança.
-    """
-    anterior = _ultima_campanya(historial, data)
-    if anterior:
-        return anterior != "arrel"
-    return data.toordinal() % 2 == 1
+    """Compatibilitat amb les crides antigues; la decisió real és la rotació."""
+    return _tria_campanya(data, historial) == "arrel"
 
 
 def _get_mode_arrel(data):
     """Angle d'Arrel per a la data (rota per dia de publicació)."""
-    idx = (data.toordinal() // 2) % len(ARREL_MODES)
+    idx = (data.toordinal() // len(CAMPANYES_ROTACIO)) % len(ARREL_MODES)
     return idx, ARREL_MODES[idx]
 
 
@@ -1091,6 +1172,132 @@ def _genera_posts_arrel(client, data, historial=None):
     return millor
 
 
+def _construir_prompt_projecte(data, campanya, historial=None):
+    """Prompt verificat per a Sutsumu, GeniKids o El Bon Diari."""
+    projecte = PROJECTES_PROMOCIO[campanya]
+    angles = projecte["angles"]
+    idx = data.toordinal() % len(angles)
+    angle = angles[idx]
+    return """Ets el creador de contingut de {nom} per a LinkedIn, X i Instagram.
+
+DADES VERIFICADES DEL PROJECTE:
+{brief}
+
+ANGLE D'AVUI: {angle}
+
+MEMÒRIA ANTIREPETICIÓ (darrers {dies} dies):
+No copiïs ni parafrasegis els textos següents. Canvia l'obertura, l'argument,
+l'exemple i la imatge central.
+{historial}
+
+NORMES:
+- Escriu en català planer, amb frases curtes i una sola idea per post.
+- Veu impersonal: no facis servir "jo", "crec", "penso", "el meu" o "la meva".
+- To honest i proper. Sense llenguatge corporatiu, exageracions ni promeses.
+- No inventis característiques, preus, dades, notícies, testimonis o resultats.
+- Màxim una metàfora i una pregunta per post.
+- Les tres xarxes han de tractar el mateix angle amb redaccions diferents.
+
+FINAL:
+- X i LinkedIn han d'acabar amb {url}.
+- Instagram ha d'incloure "{cta_ig}" just abans dels hashtags.
+- Hashtags exactes d'Instagram: {hashtags}
+
+LONGITUDS:
+- twitter: màxim 190 caràcters abans dels enllaços, sense hashtags
+- linkedin: 40-70 paraules
+- instagram: 30-60 paraules més els hashtags
+
+IMATGES:
+Cada xarxa porta "imatge": una escena visual concreta de 15-25 paraules,
+relacionada amb el post. Elements adequats: {visual}. Sense text dins la
+imatge, sense logotips i sense persones. Les tres escenes han de ser diferents.
+
+Respon NOMÉS amb JSON vàlid:
+{{
+  "linkedin": {{"text": "...", "imatge": "..."}},
+  "twitter": {{"text": "...", "imatge": "..."}},
+  "instagram": {{"text": "...", "imatge": "..."}},
+  "mode": "nom curt de l'angle",
+  "tema": "resum breu del tema"
+}}""".format(
+        nom=projecte["nom"],
+        brief=projecte["brief"],
+        angle=angle,
+        dies=DIES_MEMORIA,
+        historial=_bloc_historial_per_prompt(historial or {}),
+        url=projecte["url"],
+        cta_ig=projecte["cta_ig"],
+        hashtags=projecte["hashtags"],
+        visual=projecte["visual"],
+    )
+
+
+def _finalitza_projecte(posts, campanya):
+    """Garanteix CTA, hashtags i web encara que Gemini se'ls deixi."""
+    projecte = PROJECTES_PROMOCIO[campanya]
+    url = projecte["url"]
+    for plataforma in ("linkedin", "twitter"):
+        bloc = posts.get(plataforma)
+        if not isinstance(bloc, dict) or not bloc.get("text"):
+            continue
+        text = bloc["text"].rstrip()
+        if url.lower() not in text.lower():
+            separador = " " if plataforma == "twitter" else "\n\n"
+            bloc["text"] = text + separador + url
+
+    ig = posts.get("instagram")
+    if isinstance(ig, dict) and ig.get("text"):
+        text = ig["text"].rstrip()
+        linies = text.split("\n")
+        i = len(linies)
+        while i > 0 and (not linies[i - 1].strip()
+                         or linies[i - 1].lstrip().startswith("#")):
+            i -= 1
+        cos = "\n".join(linies[:i]).rstrip()
+        hashtags = "\n".join(linies[i:]).strip()
+        if projecte["cta_ig"].lower() not in cos.lower():
+            cos += "\n\n" + projecte["cta_ig"]
+        if not hashtags:
+            hashtags = projecte["hashtags"]
+        ig["text"] = cos + "\n\n" + hashtags
+
+    finalitza_enllacos_posts(posts)
+    posts["campanya"] = campanya
+
+
+def _genera_posts_projecte(client, data, campanya, historial=None):
+    """Genera una campanya d'un projecte amb control d'estil i repetició."""
+    prompt = _construir_prompt_projecte(data, campanya, historial)
+    millor = None
+    millor_violacions = None
+    for intent in range(3):
+        resultat = _intent_generacio(client, prompt)
+        if "error" in resultat:
+            millor = resultat
+            break
+        violacions = _violacions_estil(resultat) + _violacions_repeticio(
+            resultat, historial or {})
+        if not violacions:
+            millor, millor_violacions = resultat, []
+            break
+        print("[generador][{}] Intent {}: {} violacions — {}".format(
+            campanya, intent + 1, len(violacions), "; ".join(violacions)))
+        if (millor is None or "error" in millor
+                or len(violacions) < len(millor_violacions)):
+            millor, millor_violacions = resultat, violacions
+
+    if millor is None:
+        return {"error": "Gemini no ha retornat res ({}) en cap intent.".format(campanya)}
+    if "error" in millor:
+        return millor
+    if millor_violacions and any("repetició" in v for v in millor_violacions):
+        return {"error": "Gemini no ha pogut crear posts nous per a {}.".format(
+            PROJECTES_PROMOCIO[campanya]["nom"])}
+    _finalitza_projecte(millor, campanya)
+    return millor
+
+
 def genera_posts_dia(data_str=None):
     """
     Genera els 3 posts del dia via Gemini, amb control de qualitat:
@@ -1115,11 +1322,12 @@ def genera_posts_dia(data_str=None):
 
     historial = _carrega_historial(data)
 
-    # DIES DE LLIBRE (format nou, decisió Sergi 2026-07-03): el post és una
+    campanya = _tria_campanya(data, historial)
+
+    # CAMPANYA DE LLIBRE: el post és una
     # FRASE literal del llibre + la cita del títol + una imatge evocadora.
     # No necessita Gemini: una clau caducada no bloqueja una cita nova.
-    es_arrel = _es_dia_arrel(data, historial)
-    if not es_arrel:
+    if campanya == "cita":
         posts_cita = _genera_posts_cita(data, historial)
         if not posts_cita.get("sense_cita"):
             return posts_cita
@@ -1127,7 +1335,8 @@ def genera_posts_dia(data_str=None):
               "recorro al generador de discurs com a xarxa de seguretat.".format(
                   DIES_MEMORIA))
 
-    # Gemini només és necessari per a Arrel o si s'han exhaurit les cites noves.
+    # Gemini és necessari per a les campanyes dels projectes o si s'han
+    # exhaurit les cites noves.
     api_key = get_key("GEMINI_API_KEY")
     if not api_key:
         return {"error": "Falta GEMINI_API_KEY al secret de GitHub Actions."}
@@ -1136,8 +1345,10 @@ def genera_posts_dia(data_str=None):
     except Exception as e:
         return {"error": "Error configurant Gemini: {}".format(e)}
 
-    if es_arrel:
+    if campanya == "arrel":
         return _genera_posts_arrel(client, data, historial)
+    if campanya in PROJECTES_PROMOCIO:
+        return _genera_posts_projecte(client, data, campanya, historial)
 
     # 1) Contingut general: els posts ja no surten del corpus personal ni del
     #    catàleg de llibres. Es generen directament a partir del tema del dia.
@@ -1184,6 +1395,7 @@ def genera_posts_dia(data_str=None):
 
     # Garantia final: web sempre, i Amazon si es menciona algun llibre.
     finalitza_enllacos_posts(millor)
+    millor["campanya"] = "cita"
 
     return millor
 
