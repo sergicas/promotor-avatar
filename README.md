@@ -6,6 +6,8 @@ matí, amb una imatge pròpia i relacionada amb el contingut per a cada xarxa.
 Primer prova Gemini; si la quota d'imatges no està disponible, fa servir una
 fotografia CC0/domini públic d'Openverse i, com a última reserva, una
 il·lustració simbòlica local sense text. No publica targetes tipogràfiques.
+Els posts d'El Bon Diari fan servir la imatge real de la notícia, adaptada al
+format de cada xarxa, amb la mateixa reserva contextual si la font falla.
 
 **On s'executa:** als servidors de GitHub (GitHub Actions), no al Mac. Així
 no depèn que l'ordinador estigui engegat. Vegeu `.github/workflows/posts-diaris.yml`.
