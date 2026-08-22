@@ -363,6 +363,28 @@ MOTIU_IMATGE_PER_DEFECTE = (
     "un llibre obert reposant vora una finestra, amb llum càlida i suau"
 )
 
+ENQUADRAMENTS_CITA = {
+    "linkedin": (
+        "Pla general ampli, amb l'entorn complet visible i profunditat de camp"
+    ),
+    "twitter": (
+        "Primer pla d'un detall secundari de l'escena, amb un punt de vista "
+        "dinàmic i diferent del pla general"
+    ),
+    "instagram": (
+        "Composició centrada des d'un angle elevat, amb un element "
+        "complementari i sense repetir els altres enquadraments"
+    ),
+}
+
+
+def _motiu_cita_per_xarxa(titol, xarxa):
+    """Converteix el motiu del llibre en tres escenes visualment diferents."""
+    base = MOTIUS_IMATGE.get(titol, MOTIU_IMATGE_PER_DEFECTE)
+    return "{}. {}. Sense text ni persones.".format(
+        base.rstrip(". "), ENQUADRAMENTS_CITA[xarxa],
+    )
+
 
 def _carrega_cites():
     """Llegeix el banc de frases triades per Sergi.
@@ -551,16 +573,19 @@ def _genera_posts_cita(data, historial=None):
     frase, titol = _cita_del_dia(data, historial)
     if not frase:
         return {"sense_cita": True, "llibre": titol}
-    bloc = {"text": _post_cita(frase, titol),
-            "imatge": MOTIUS_IMATGE.get(titol, MOTIU_IMATGE_PER_DEFECTE)}
+    text = _post_cita(frase, titol)
     posts = {
-        "linkedin": dict(bloc),
-        "twitter": dict(bloc),
-        "instagram": dict(bloc),
+        xarxa: {
+            "text": text,
+            "imatge": _motiu_cita_per_xarxa(titol, xarxa),
+        }
+        for xarxa in ("linkedin", "twitter", "instagram")
+    }
+    posts.update({
         "mode": "cita de llibre",
         "tema": "Una frase de «{}»".format(titol),
         "campanya": "cita",
-    }
+    })
     finalitza_enllacos_posts(posts, titol_forcat=titol)
     if len(posts["twitter"]["text"]) > 270:
         print("[generador] AVÍS: la frase de «{}» passa de 270 caràcters ({}); "
