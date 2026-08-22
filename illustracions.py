@@ -129,7 +129,10 @@ def _xarxa(d, w, h, accent):
 
 def _motiu(descripcio):
     t = _net(descripcio)
-    if any(x in t for x in ("arrel", "arbre", "bosc", "root", "tree", "forest")):
+    if any(x in t for x in (
+        "arrel", "arbre", "branca", "tronc", "bosc", "pi", "root",
+        "tree", "branch", "trunk", "forest", "pine",
+    )):
         return "arbre"
     if any(x in t for x in ("papallona", "ales", "butterfly", "wings")):
         return "papallona"
