@@ -24,6 +24,12 @@ class ImatgesObertesTest(unittest.TestCase):
         )
         self.assertEqual(termes[:3], ["roots", "tree", "forest"])
 
+    def test_una_branca_no_es_converteix_en_una_cerca_generica_de_llum(self):
+        termes = imatges_obertes.termes_cerca(
+            "una branca verda que brota d'un tronc vell i molsós amb llum de matí"
+        )
+        self.assertEqual(termes[:3], ["tree branch", "tree trunk", "moss"])
+
     def test_cerca_cc0_i_retalla_al_format_de_la_xarxa(self):
         resposta_cerca = Mock()
         resposta_cerca.raise_for_status.return_value = None
