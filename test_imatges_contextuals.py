@@ -78,6 +78,67 @@ class ImatgesObertesTest(unittest.TestCase):
         )
         self.assertIsNone(resultat)
 
+    def test_no_tria_una_fotografia_ja_usada_en_un_altre_canal(self):
+        repetida = {
+            "id": "foto-1",
+            "url": "https://example.com/repetida.jpg",
+            "foreign_landing_url": "https://example.com/fotos/1",
+            "license": "cc0",
+            "mature": False,
+            "width": 1600,
+            "height": 1000,
+        }
+        alternativa = {
+            "id": "foto-2",
+            "url": "https://example.com/alternativa.jpg",
+            "foreign_landing_url": "https://example.com/fotos/2",
+            "license": "cc0",
+            "mature": False,
+            "width": 1500,
+            "height": 1000,
+        }
+        resultat = imatges_obertes._tria_resultat(
+            [repetida, alternativa], "2026-08-24", "twitter",
+            {"foto-1", "https://example.com/fotos/1"},
+        )
+        self.assertEqual(resultat["id"], "foto-2")
+
+    def test_cada_xarxa_te_un_grup_estable_de_fotografies(self):
+        candidats = [{
+            "id": "foto-{}".format(i),
+            "url": "https://example.com/{}.jpg".format(i),
+            "license": "cc0",
+            "mature": False,
+            "width": 1600,
+            "height": 1000,
+        } for i in range(30)]
+        triats = {
+            xarxa: imatges_obertes._tria_resultat(
+                candidats, "2026-08-24", xarxa,
+            )["id"]
+            for xarxa in ("linkedin", "twitter", "instagram")
+        }
+        self.assertEqual(len(set(triats.values())), 3)
+        for xarxa, foto_id in triats.items():
+            foto = next(r for r in candidats if r["id"] == foto_id)
+            self.assertEqual(imatges_obertes._xarxa_assignada(foto), xarxa)
+
+    def test_llegeix_els_origens_usats_de_les_metadades_del_dia(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(imatges_obertes, "DIR_IMATGES", Path(tmp)):
+            metadades = Path(tmp) / "2026-08-24_linkedin_oberta.json"
+            metadades.write_text(
+                '{"identificador":"foto-1","origen":"https://example.com/1",'
+                '"url":"https://example.com/foto.jpg"}',
+                encoding="utf-8",
+            )
+            usats = imatges_obertes._origens_usats(
+                "2026-08-24", "instagram"
+            )
+        self.assertEqual(usats, {
+            "foto-1", "https://example.com/1", "https://example.com/foto.jpg",
+        })
+
 
 class IllustracionsTest(unittest.TestCase):
     def test_genera_formats_sense_targeta_tipografica(self):

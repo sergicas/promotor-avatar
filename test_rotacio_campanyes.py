@@ -112,6 +112,20 @@ class RotacioCampanyesTest(unittest.TestCase):
             _, titol = generador._cita_del_dia(self.dia, historial)
         self.assertEqual(titol, alternatiu)
 
+    def test_una_cita_porta_tres_descripcions_visuals_diferents(self):
+        with mock.patch.object(
+                generador, "_cita_del_dia",
+                return_value=("Una frase literal.", "Nara")):
+            posts = generador._genera_posts_cita(self.dia, {})
+        descripcions = {
+            posts[xarxa]["imatge"]
+            for xarxa in ("linkedin", "twitter", "instagram")
+        }
+        self.assertEqual(len(descripcions), 3)
+        self.assertIn("Pla general", posts["linkedin"]["imatge"])
+        self.assertIn("Primer pla", posts["twitter"]["imatge"])
+        self.assertIn("angle elevat", posts["instagram"]["imatge"])
+
 
 if __name__ == "__main__":
     unittest.main()

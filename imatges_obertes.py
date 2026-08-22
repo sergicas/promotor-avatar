@@ -29,6 +29,7 @@ MIDES = {
     "twitter": (1600, 900),
     "linkedin": (1200, 900),
 }
+ORDRE_XARXES = ("linkedin", "twitter", "instagram")
 
 # Conceptes que apareixen sovint als prompts. Incloem català i anglès perquè
 # la cerca continuï funcionant encara que la traducció de Gemini falli.
@@ -120,14 +121,69 @@ def _consultes_progressives(termes):
     return consultes
 
 
-def _tria_resultat(resultats, data_iso, xarxa):
+def _identificadors_resultat(resultat):
+    """Identificadors estables per reconèixer una mateixa fotografia.
+
+    Openverse pot retornar la mateixa obra amb URLs de fitxer diferents. La
+    pàgina d'origen i els identificadors del proveïdor permeten excloure-la
+    igualment dels altres canals del mateix dia.
+    """
+    camps = (
+        "id", "foreign_identifier", "foreign_landing_url", "url",
+    )
+    return {
+        str(resultat.get(camp)).strip()
+        for camp in camps
+        if resultat.get(camp)
+    }
+
+
+def _xarxa_assignada(resultat):
+    """Partició estable: una foto d'Openverse pertany a una sola xarxa.
+
+    Això continua impedint repeticions fins i tot en un reintent executat en
+    un procés nou, quan les metadades locals de la passada anterior ja no hi
+    són. Si una cerca molt pobra no té cap foto del grup de la xarxa, encara
+    es permet el conjunt complet i l'exclusió per metadades fa de segona xarxa.
+    """
+    identificadors = sorted(_identificadors_resultat(resultat))
+    clau = identificadors[0] if identificadors else ""
+    bucket = int(hashlib.sha256(clau.encode("utf-8")).hexdigest()[:8], 16)
+    return ORDRE_XARXES[bucket % len(ORDRE_XARXES)]
+
+
+def _origens_usats(data_iso, xarxa_actual=None):
+    """Fotos ja assignades a altres xarxes de la mateixa data."""
+    usats = set()
+    patro = "{}_{}_oberta.json".format(data_iso, "*")
+    for cami in DIR_IMATGES.glob(patro):
+        if xarxa_actual and cami.name == "{}_{}_oberta.json".format(
+                data_iso, xarxa_actual):
+            continue
+        try:
+            metadades = json.loads(cami.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            continue
+        for camp in ("identificador", "origen", "url"):
+            if metadades.get(camp):
+                usats.add(str(metadades[camp]).strip())
+    return usats
+
+
+def _tria_resultat(resultats, data_iso, xarxa, exclosos=None):
+    exclosos = set(exclosos or ())
     valids = [
         r for r in resultats
         if r.get("url") and r.get("license") in ("cc0", "pdm")
         and not r.get("mature")
+        and not (_identificadors_resultat(r) & exclosos)
     ]
     if not valids:
         return None
+
+    assignats = [r for r in valids if _xarxa_assignada(r) == xarxa]
+    if assignats:
+        valids = assignats
 
     ample_desti, alt_desti = MIDES.get(xarxa, MIDES["instagram"])
     ratio_desti = ample_desti / alt_desti
@@ -178,6 +234,11 @@ def busca_imatge_oberta(descripcio, data_iso, xarxa="instagram"):
     if cami.exists():
         return cami
 
+    # Una fotografia només pot aparèixer en una de les tres xarxes del dia.
+    # Les metadades persisteixen entre crides, de manera que també funciona si
+    # cada canal necessita una consulta progressiva diferent.
+    exclosos = _origens_usats(data_iso, xarxa)
+
     try:
         # La traducció ja està preparada per crear una escena fidel; també ens
         # dona vocabulari anglès de qualitat per buscar la fotografia.
@@ -201,7 +262,7 @@ def busca_imatge_oberta(descripcio, data_iso, xarxa="instagram"):
             )
             resposta.raise_for_status()
             resultat = _tria_resultat(
-                resposta.json().get("results", []), data_iso, xarxa,
+                resposta.json().get("results", []), data_iso, xarxa, exclosos,
             )
         except Exception as exc:
             print("[imatges-obertes] cerca fallida per '{}': {}".format(consulta, exc))
@@ -213,7 +274,11 @@ def busca_imatge_oberta(descripcio, data_iso, xarxa="instagram"):
                 "titol": resultat.get("title"),
                 "autor": resultat.get("creator"),
                 "llicencia": resultat.get("license"),
+                "identificador": (
+                    resultat.get("id") or resultat.get("foreign_identifier")
+                ),
                 "origen": resultat.get("foreign_landing_url"),
+                "url": resultat.get("url"),
             }
             cami.with_suffix(".json").write_text(
                 json.dumps(metadades, ensure_ascii=False, indent=2),
