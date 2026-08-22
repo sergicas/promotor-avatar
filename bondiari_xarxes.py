@@ -9,15 +9,17 @@ per URL i plataforma permet reprendre execucions parcials sense duplicar-les.
 import argparse
 import datetime
 import html
+import io
 import json
 import os
 import re
 import textwrap
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urljoin
 
 import requests
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 API_NEWS = "https://bondiari.com/api/live-news"
 BASE_URL = "https://bondiari.com"
@@ -30,6 +32,11 @@ TINTA = (20, 20, 20)
 GRIS = (120, 116, 108)
 VERMELL = (231, 42, 48)
 MOSAIC = [VERMELL, (255, 224, 0), (30, 80, 160), (0, 0, 0)]
+MIDES_XARXA = {
+    "instagram": (1080, 1080),
+    "twitter": (1600, 900),
+    "linkedin": (1200, 900),
+}
 
 MARQUES_COMERCIALS = (
     "audi", "bmw", "citroën", "cupra", "fiat", "ford", "honda", "hyundai",
@@ -292,6 +299,59 @@ def munta_targeta(titular, dia, xarxa):
     return cami
 
 
+def prepara_imatge_noticia(story, dia, xarxa):
+    """Baixa la imatge real de la notícia i l'adapta a cada xarxa.
+
+    Si la font no es pot descarregar, recorre a la mateixa cerca d'imatges
+    obertes contextuals que els posts literaris i, finalment, a una
+    il·lustració simbòlica sense text. La targeta amb titular ja no forma part
+    del flux de publicació.
+    """
+    DIR_CARDS.mkdir(exist_ok=True)
+    cami = DIR_CARDS / "{}_{}_noticia.png".format(dia.isoformat(), xarxa)
+    if cami.exists():
+        return cami
+
+    image_url = urljoin(BASE_URL + "/", story.get("imageUrl") or "")
+    if image_url:
+        try:
+            resposta = requests.get(
+                image_url,
+                timeout=40,
+                headers={"user-agent": "bondiari-social/4.0"},
+            )
+            resposta.raise_for_status()
+            with Image.open(io.BytesIO(resposta.content)) as original:
+                original = ImageOps.exif_transpose(original).convert("RGB")
+                final = ImageOps.fit(
+                    original,
+                    MIDES_XARXA.get(xarxa, MIDES_XARXA["instagram"]),
+                    method=Image.Resampling.LANCZOS,
+                )
+                final.save(cami, "PNG", optimize=True)
+            print("[{}] imatge real de la notícia preparada.".format(xarxa))
+            return cami
+        except Exception as exc:
+            print("[{}] no s'ha pogut baixar la imatge de la notícia: {}".format(
+                xarxa, exc,
+            ))
+
+    descripcio = " ".join(
+        [story.get("title") or ""] + list(story.get("facts") or [])[:1]
+    ).strip()
+    clau_data = "{}-bondiari".format(dia.isoformat())
+    try:
+        from imatges_obertes import busca_imatge_oberta
+        alternativa = busca_imatge_oberta(descripcio, clau_data, xarxa)
+        if alternativa:
+            return alternativa
+    except Exception as exc:
+        print("[{}] la cerca d'imatge oberta ha fallat: {}".format(xarxa, exc))
+
+    from illustracions import genera_illustracio
+    return genera_illustracio(descripcio, clau_data, xarxa)
+
+
 def _retalla(text, maxim):
     text = _normalitza_text(text)
     if len(text) <= maxim:
@@ -329,10 +389,10 @@ def publica_xarxa(xarxa, story, dia, registre, dry_run=False):
         print("[{}] ↷ URL ja publicat; no es duplica.".format(xarxa))
         return {"platform": xarxa, "status": "already"}
 
-    targeta = munta_targeta(story["title"], dia, xarxa)
+    imatge = prepara_imatge_noticia(story, dia, xarxa)
     text = munta_text(xarxa, story, dia)
     if dry_run:
-        print("[{}] ✓ validat · {} · {} caràcters".format(xarxa, targeta.name, len(text)))
+        print("[{}] ✓ validat · {} · {} caràcters".format(xarxa, imatge.name, len(text)))
         return {"platform": xarxa, "status": "validated"}
 
     from publicador import publica_post
@@ -341,7 +401,7 @@ def publica_xarxa(xarxa, story, dia, registre, dry_run=False):
     resultat = publica_post(
         xarxa,
         text,
-        imatge=str(targeta),
+        imatge=str(imatge),
         data_str=dia.isoformat(),
         quan=quan,
         evitar_duplicat_diari=False,

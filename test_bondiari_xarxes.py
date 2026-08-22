@@ -1,4 +1,5 @@
 import datetime
+import io
 import json
 import tempfile
 import unittest
@@ -93,11 +94,19 @@ class BondiariTests(unittest.TestCase):
             bx.desa_registre(registre, cami)
             self.assertEqual(bx.carrega_registre(cami), registre)
 
-    def test_targeta_instagram_es_png_quadrada(self):
+    def test_imatge_real_de_noticia_es_retalla_per_instagram(self):
+        story = story_editorial()
+        buffer = io.BytesIO()
+        Image.new("RGB", (1600, 900), (30, 90, 140)).save(buffer, "JPEG")
+        resposta = mock.Mock()
+        resposta.content = buffer.getvalue()
+        resposta.raise_for_status.return_value = None
         with tempfile.TemporaryDirectory() as carpeta, mock.patch.object(
             bx, "DIR_CARDS", Path(carpeta)
-        ):
-            cami = bx.munta_targeta("Titular editorial verificat", datetime.date(2026, 8, 3), "instagram")
+        ), mock.patch.object(bx.requests, "get", return_value=resposta):
+            cami = bx.prepara_imatge_noticia(
+                story, datetime.date(2026, 8, 3), "instagram"
+            )
             with Image.open(cami) as imatge:
                 self.assertEqual(imatge.format, "PNG")
                 self.assertEqual(imatge.size, (1080, 1080))
