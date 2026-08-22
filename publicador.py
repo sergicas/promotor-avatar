@@ -315,21 +315,30 @@ def _imatge_publica(descripcio, text, data_str, xarxa):
             cami = None
 
         if not cami:
-            # Pla B sense API (gratuït): targeta local amb el text del post,
-            # a l'estil d'El Bon Diari. Si Gemini es recupera (facturació,
-            # quota), el primer intent tornarà a donar imatges generades.
+            # Pla B: fotografia CC0 o de domini públic relacionada amb la
+            # descripció visual. No porta text ni aspecte de targeta.
             try:
-                from targetes import munta_targeta
-                cami = munta_targeta(text, data_str, xarxa)
-                print("[publicador] {}: imatge de Gemini no disponible; "
-                      "es fa servir una targeta local.".format(xarxa))
+                from imatges_obertes import busca_imatge_oberta
+                cami = busca_imatge_oberta(desc, data_str, xarxa)
             except Exception as e:
-                print("[publicador] la targeta local també ha fallat per a "
+                print("[publicador] la cerca d'imatge oberta ha fallat per a "
+                      "{}: {}".format(xarxa, e))
+                cami = None
+
+        if not cami:
+            # Pla C, completament local: il·lustració simbòlica sense text.
+            # Així Instagram conserva una imatge útil fins i tot sense quota
+            # de Gemini ni accés temporal a Openverse.
+            try:
+                from illustracions import genera_illustracio
+                cami = genera_illustracio(desc, data_str, xarxa)
+            except Exception as e:
+                print("[publicador] la il·lustració local també ha fallat per a "
                       "{}: {}".format(xarxa, e))
 
     if not cami:
         return None, (
-            "No s'ha pogut generar la imatge per a {}. Revisa GEMINI_API_KEY (Imagen 4)."
+            "No s'ha pogut preparar cap imatge contextual per a {}."
         ).format(xarxa)
 
     url = _puja_imatge(cami)

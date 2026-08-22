@@ -165,6 +165,15 @@ def genera_imatge(descripcio_ca, data_iso, xarxa="instagram", aspect_ratio="1:1"
         except Exception as e:
             motiu = "excepció: {}".format(e)
 
+        # Errors de quota, credencials o model: repetir la mateixa petició no
+        # ho arreglarà. Passem de seguida a la fotografia contextual oberta.
+        no_reintentable = bool(
+            motiu and re.search(r"Error API \((401|403|404|429)\)", motiu)
+        )
+        if no_reintentable:
+            print("[imatges] {}; passo a la reserva visual.".format(motiu))
+            break
+
         # Ha fallat aquest intent: esperar i tornar-ho a provar (si en queden)
         if intent < REINTENTS_IMATGE:
             espera = ESPERA_ENTRE_INTENTS[min(intent - 1, len(ESPERA_ENTRE_INTENTS) - 1)]
