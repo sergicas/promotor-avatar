@@ -410,6 +410,40 @@ def _carrega_historial(data=None):
     return recent
 
 
+def _entrades_anteriors(historial, data):
+    """Entrades reals anteriors a la data, de més recent a més antiga."""
+    entrades = []
+    for data_str, entrada in (historial or {}).items():
+        try:
+            dia = datetime.date.fromisoformat(data_str)
+        except (TypeError, ValueError):
+            continue
+        if dia < data and isinstance(entrada, dict):
+            entrades.append((dia, entrada))
+    return [entrada for _, entrada in sorted(entrades, reverse=True)]
+
+
+def _ultima_campanya(historial, data):
+    """Campanya de l'últim post acceptat per Buffer abans de ``data``."""
+    for entrada in _entrades_anteriors(historial, data):
+        campanya = entrada.get("campanya")
+        if isinstance(campanya, str) and campanya.strip():
+            return campanya.strip().lower()
+    return None
+
+
+def _ultim_llibre_citat(historial, data):
+    """Títol de l'última campanya de cita, encara que entremig hi hagi Arrel."""
+    for entrada in _entrades_anteriors(historial, data):
+        if entrada.get("campanya") != "cita":
+            continue
+        tema = entrada.get("tema") or ""
+        match = re.search(r"[«\"]([^»\"]+)[»\"]", tema)
+        if match:
+            return match.group(1).strip()
+    return None
+
+
 def _textos_historial(historial):
     textos = []
     for entrada in (historial or {}).values():
@@ -484,6 +518,12 @@ def _cita_del_dia(data, historial=None):
         titol = ordre[(pos + offset) % n]
         if titol not in titols:
             titols.append(titol)
+    # No tornar a dedicar dues campanyes de llibre seguides a la mateixa obra.
+    # Si encara queden cites d'altres títols, el llibre anterior passa al final.
+    titol_anterior = _ultim_llibre_citat(historial, data)
+    if titol_anterior in titols and len(titols) > 1:
+        titols.remove(titol_anterior)
+        titols.append(titol_anterior)
     for titol in titols:
         frases = cites.get(titol) or []
         inici = comptador % len(frases) if frases else 0
@@ -880,10 +920,18 @@ ARREL_MODES = [
 ]
 
 
-def _es_dia_arrel(data):
-    """En els dies de publicació (la màquina publica en ordinal parell), la
-    meitat es dediquen a Arrel, alternant literatura / Arrel. True = dia Arrel."""
-    return (data.toordinal() // 2) % 2 == 1
+def _es_dia_arrel(data, historial=None):
+    """Alterna Arrel i llibres segons l'última publicació real.
+
+    La fórmula anterior agrupava les dates de dues en dues i podia produir dos
+    dies consecutius d'Arrel. La memòria de Buffer és ara la font de veritat:
+    després d'Arrel toca llibre; després de qualsevol altra campanya toca
+    Arrel. Sense historial, la paritat diària manté igualment l'alternança.
+    """
+    anterior = _ultima_campanya(historial, data)
+    if anterior:
+        return anterior != "arrel"
+    return data.toordinal() % 2 == 1
 
 
 def _get_mode_arrel(data):
@@ -1070,7 +1118,8 @@ def genera_posts_dia(data_str=None):
     # DIES DE LLIBRE (format nou, decisió Sergi 2026-07-03): el post és una
     # FRASE literal del llibre + la cita del títol + una imatge evocadora.
     # No necessita Gemini: una clau caducada no bloqueja una cita nova.
-    if not _es_dia_arrel(data):
+    es_arrel = _es_dia_arrel(data, historial)
+    if not es_arrel:
         posts_cita = _genera_posts_cita(data, historial)
         if not posts_cita.get("sense_cita"):
             return posts_cita
@@ -1087,7 +1136,7 @@ def genera_posts_dia(data_str=None):
     except Exception as e:
         return {"error": "Error configurant Gemini: {}".format(e)}
 
-    if _es_dia_arrel(data):
+    if es_arrel:
         return _genera_posts_arrel(client, data, historial)
 
     # 1) Contingut general: els posts ja no surten del corpus personal ni del
