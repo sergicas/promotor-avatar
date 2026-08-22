@@ -2,7 +2,10 @@
 
 Genera cada dia 3 posts (LinkedIn, X, Instagram) en veu impersonal sobre
 l'obra de Sergi Castillo Lapeira i els programa a Buffer per a les 7:00 del
-matí, amb una imatge pròpia per a cada xarxa (Imagen 4).
+matí, amb una imatge pròpia i relacionada amb el contingut per a cada xarxa.
+Primer prova Gemini; si la quota d'imatges no està disponible, fa servir una
+fotografia CC0/domini públic d'Openverse i, com a última reserva, una
+il·lustració simbòlica local sense text. No publica targetes tipogràfiques.
 
 **On s'executa:** als servidors de GitHub (GitHub Actions), no al Mac. Així
 no depèn que l'ordinador estigui engegat. Vegeu `.github/workflows/posts-diaris.yml`.
