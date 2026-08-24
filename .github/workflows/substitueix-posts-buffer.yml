@@ -1,0 +1,61 @@
+name: Substituir posts programats a Buffer
+
+on:
+  workflow_dispatch:
+    inputs:
+      dia:
+        description: "Dia programat que s'ha de substituir (YYYY-MM-DD)"
+        required: true
+      text_antic:
+        description: "Paraula que han de contenir els tres posts antics"
+        required: true
+      confirmar:
+        description: "Confirmo que vull substituir els tres posts"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: posts-diaris
+  cancel-in-progress: false
+
+jobs:
+  substituir:
+    if: github.event.inputs.confirmar == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Europe/Madrid
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_IMG_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install --quiet -r requirements.txt
+      - name: Preparar substituts, crear-los i retirar els originals
+        run: >-
+          python -u substitueix_posts_buffer.py
+          "${{ github.event.inputs.dia }}"
+          --si-conte "${{ github.event.inputs.text_antic }}"
+      - name: Desar la memòria antirepetició
+        if: success()
+        shell: bash
+        run: |
+          if git diff --quiet -- dades/historial_posts.json; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dades/historial_posts.json
+          git commit -m "estat: campanya substituïda a Buffer"
+          git pull --rebase origin main
+          git push origin HEAD:main
