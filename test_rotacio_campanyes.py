@@ -47,13 +47,32 @@ class RotacioCampanyesTest(unittest.TestCase):
         self.assertFalse(generador._es_dia_arrel(self.dia, historial))
 
     def test_rotacio_inclou_tots_els_projectes_sense_repeticions(self):
-        ordre = ("cita", "arrel", "sutsumu", "genikids", "bondiari")
+        ordre = ("cita", "arrel", "sutsumu", "bondiari")
         for actual, seguent in zip(ordre, ordre[1:] + ordre[:1]):
             with self.subTest(actual=actual):
                 historial = {"2026-08-23": {"campanya": actual}}
                 triada = generador._tria_campanya(self.dia, historial)
                 self.assertEqual(triada, seguent)
                 self.assertNotEqual(triada, actual)
+
+    def test_salta_genikids_mentre_no_te_cap_pagina_publica(self):
+        historial = {"2026-08-24": {"campanya": "sutsumu"}}
+        self.assertEqual(
+            generador._tria_campanya(
+                datetime.date(2026, 8, 25), historial
+            ),
+            "bondiari",
+        )
+        self.assertNotIn("genikids", generador._campanyes_actives())
+
+    def test_despres_un_genikids_ja_programat_continua_amb_bondiari(self):
+        historial = {"2026-08-25": {"campanya": "genikids"}}
+        self.assertEqual(
+            generador._tria_campanya(
+                datetime.date(2026, 8, 26), historial
+            ),
+            "bondiari",
+        )
 
     def test_cataleg_te_els_tres_projectes_addicionals(self):
         self.assertEqual(
@@ -65,16 +84,18 @@ class RotacioCampanyesTest(unittest.TestCase):
         sutsumu = generador._construir_prompt_projecte(
             self.dia, "sutsumu", {}
         )
-        genikids = generador._construir_prompt_projecte(
-            self.dia, "genikids", {}
-        )
         bondiari = generador._construir_prompt_projecte(
             self.dia, "bondiari", {}
         )
         self.assertIn("https://apps.apple.com/app/sutsumu/id6776719183", sutsumu)
-        self.assertIn("https://sergicastillo.com", genikids)
-        self.assertNotIn("apps.apple.com", genikids)
         self.assertIn("https://bondiari.com", bondiari)
+
+    def test_no_permet_generar_genikids_sense_enllac_public(self):
+        self.assertIsNone(generador.PROJECTES_PROMOCIO["genikids"]["url"])
+        with self.assertRaisesRegex(ValueError, "pausat"):
+            generador._construir_prompt_projecte(
+                self.dia, "genikids", {}
+            )
 
     def test_finalitzacio_afegeix_producte_i_web(self):
         posts = {

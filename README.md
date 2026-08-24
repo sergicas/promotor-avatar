@@ -10,9 +10,10 @@ Els posts d'El Bon Diari fan servir la imatge real de la notícia, adaptada al
 format de cada xarxa, amb la mateixa reserva contextual si la font falla.
 
 La línia editorial promocional rota segons l'historial real: **llibres → Arrel
-→ Sutsumu → GeniKids → El Bon Diari**. Això evita publicar dues vegades seguides
-el mateix projecte encara que un dia no s'executi l'automatització. Cada text
-continua passant també pel control de semblança amb els posts recents.
+→ Sutsumu → El Bon Diari**. GeniKids queda configurat però pausat fins que
+tingui una fitxa pública a l'App Store o una pàgina pròpia verificable. Això
+evita promocionar productes que el lector encara no pot trobar i evita publicar
+dues vegades seguides el mateix projecte.
 
 **On s'executa:** als servidors de GitHub (GitHub Actions), no al Mac. Així
 no depèn que l'ordinador estigui engegat. Vegeu `.github/workflows/posts-diaris.yml`.
