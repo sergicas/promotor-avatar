@@ -945,14 +945,14 @@ ARREL_MODES = [
     "Una observació certa sobre com la rigidesa i la repetició envelleixen, i com Arrel hi intervé.",
 ]
 
-# Rotació completa de les línies editorials. L'historial real de Buffer marca
-# quin element toca després; per tant, una execució perduda o manual no trenca
-# l'ordre ni provoca dues campanyes iguals seguides.
+# Catàleg ordenat de les línies editorials. Els projectes sense una pàgina
+# pública verificable es conserven aquí, però se salten fins que s'activin.
 CAMPANYES_ROTACIO = ("cita", "arrel", "sutsumu", "genikids", "bondiari")
 
 PROJECTES_PROMOCIO = {
     "sutsumu": {
         "nom": "Sutsumu",
+        "actiu": True,
         "url": "https://apps.apple.com/app/sutsumu/id6776719183",
         "cta_ig": "Sutsumu · disponible a l'App Store",
         "hashtags": "#Sutsumu #arxiupersonal #notes #escriptura #privadesa",
@@ -976,9 +976,10 @@ PROJECTES_PROMOCIO = {
     },
     "genikids": {
         "nom": "GeniKids",
-        # Encara no hi ha una URL pública pròpia confirmada al projecte. La web
-        # de Sergi és el destí segur i evita inventar un enllaç de descàrrega.
-        "url": WEB,
+        # Pausat fins que tingui una fitxa pública a l'App Store o una pàgina
+        # pròpia on el lector pugui trobar informació real del producte.
+        "actiu": False,
+        "url": None,
         "cta_ig": "GeniKids · més informació a la bio",
         "hashtags": "#GeniKids #infancia #creativitat #memoria #jocencatala",
         "brief": (
@@ -1001,6 +1002,7 @@ PROJECTES_PROMOCIO = {
     },
     "bondiari": {
         "nom": "El Bon Diari",
+        "actiu": True,
         "url": "https://bondiari.com",
         "cta_ig": "El Bon Diari · bondiari.com",
         "hashtags": "#ElBonDiari #Bondiari #noticies #Catalunya #actualitat",
@@ -1024,15 +1026,36 @@ PROJECTES_PROMOCIO = {
 }
 
 
+def _campanyes_actives():
+    """Rotació publicable: cap projecte sense URL real pot entrar-hi."""
+    actives = []
+    for campanya in CAMPANYES_ROTACIO:
+        projecte = PROJECTES_PROMOCIO.get(campanya)
+        if projecte is None:
+            actives.append(campanya)
+            continue
+        url = projecte.get("url")
+        if projecte.get("actiu") and isinstance(url, str) \
+                and url.startswith("https://"):
+            actives.append(campanya)
+    return tuple(actives)
+
+
 def _tria_campanya(data, historial=None):
-    """Campanya següent de la rotació, basada en l'últim post publicat."""
+    """Campanya publicable següent, saltant projectes encara no disponibles."""
     anterior = _ultima_campanya(historial, data)
     aliases = {"general": "cita", "llibre": "cita"}
     anterior = aliases.get(anterior, anterior)
+    actives = _campanyes_actives()
     if anterior in CAMPANYES_ROTACIO:
         pos = CAMPANYES_ROTACIO.index(anterior)
-        return CAMPANYES_ROTACIO[(pos + 1) % len(CAMPANYES_ROTACIO)]
-    return CAMPANYES_ROTACIO[data.toordinal() % len(CAMPANYES_ROTACIO)]
+        for offset in range(1, len(CAMPANYES_ROTACIO) + 1):
+            candidata = CAMPANYES_ROTACIO[
+                (pos + offset) % len(CAMPANYES_ROTACIO)
+            ]
+            if candidata in actives:
+                return candidata
+    return actives[data.toordinal() % len(actives)]
 
 
 def _es_dia_arrel(data, historial=None):
@@ -1042,7 +1065,7 @@ def _es_dia_arrel(data, historial=None):
 
 def _get_mode_arrel(data):
     """Angle d'Arrel per a la data (rota per dia de publicació)."""
-    idx = (data.toordinal() // len(CAMPANYES_ROTACIO)) % len(ARREL_MODES)
+    idx = (data.toordinal() // len(_campanyes_actives())) % len(ARREL_MODES)
     return idx, ARREL_MODES[idx]
 
 
@@ -1200,6 +1223,12 @@ def _genera_posts_arrel(client, data, historial=None):
 def _construir_prompt_projecte(data, campanya, historial=None):
     """Prompt verificat per a Sutsumu, GeniKids o El Bon Diari."""
     projecte = PROJECTES_PROMOCIO[campanya]
+    if campanya not in _campanyes_actives():
+        raise ValueError(
+            "{} està pausat perquè encara no té un enllaç públic verificat.".format(
+                projecte["nom"]
+            )
+        )
     angles = projecte["angles"]
     idx = data.toordinal() % len(angles)
     angle = angles[idx]
