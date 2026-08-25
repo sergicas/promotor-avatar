@@ -204,5 +204,23 @@
         "imatge": "Una lupa col·locada sobre un document imprès amb gràfics de barres en una oficina buida i ben il·luminada."
       }
     }
+  },
+  "2026-08-26": {
+    "campanya": "cita",
+    "tema": "Una frase de «Ànima Material»",
+    "posts": {
+      "linkedin": {
+        "text": "«Hi ha tants camins com portes en el cel.»\n\n— Ànima Material\n\nhttps://www.amazon.es/dp/B0CQYZPZGC\n\nhttps://sergicastillo.com",
+        "imatge": "una ploma reposant sobre un full de paper en blanc vora una finestra, amb llum tènue. Pla general ampli, amb l'entorn complet visible i profunditat de camp. Sense text ni persones."
+      },
+      "twitter": {
+        "text": "«Hi ha tants camins com portes en el cel.»\n\n— Ànima Material https://www.amazon.es/dp/B0CQYZPZGC https://sergicastillo.com",
+        "imatge": "una ploma reposant sobre un full de paper en blanc vora una finestra, amb llum tènue. Primer pla d'un detall secundari de l'escena, amb un punt de vista dinàmic i diferent del pla general. Sense text ni persones."
+      },
+      "instagram": {
+        "text": "«Hi ha tants camins com portes en el cel.»\n\n— Ànima Material\n\nhttps://www.amazon.es/dp/B0CQYZPZGC\n\nsergicastillo.com · enllaç a la bio",
+        "imatge": "una ploma reposant sobre un full de paper en blanc vora una finestra, amb llum tènue. Composició centrada des d'un angle elevat, amb un element complementari i sense repetir els altres enquadraments. Sense text ni persones."
+      }
+    }
   }
 }
