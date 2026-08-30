@@ -30,6 +30,34 @@ class Resposta:
 
 
 class BondiariTests(unittest.TestCase):
+    def test_calcula_id_des_de_url_quan_la_imatge_real_es_externa(self):
+        story = {
+            "title": "Les exploracions de càlcic del cor poden orientar l'ús d'estatines",
+            "url": (
+                "https://www.statnews.com/2026/08/26/"
+                "cac-scans-statin-use-prevent-calculator-heart-disease-risk/"
+                "?utm_campaign=rss"
+            ),
+            "imageUrl": (
+                "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/"
+                "Coronary_CT_Angiography_Scan.jpg/1280px-Coronary_CT_Angiography_Scan.jpg"
+            ),
+        }
+
+        self.assertEqual(
+            bx.selecciona_capcalera([story])["canonical_url"],
+            "https://bondiari.com/noticia/feed-7ox3gq",
+        )
+
+    def test_prioritza_id_explicit_valid_encara_que_la_imatge_sigui_externa(self):
+        story = {
+            "id": "feed-explicit",
+            "title": "Una notícia amb foto real",
+            "url": "https://example.com/noticia",
+            "imageUrl": "https://example.com/foto.jpg",
+        }
+        self.assertEqual(bx._id_noticia(story), "feed-explicit")
+
     def test_descarta_anunci_kia_i_tria_noticia_editorial(self):
         anunci = {
             "title": (
