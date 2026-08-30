@@ -131,12 +131,45 @@ def _normalitza_text(text):
     return " ".join(html.unescape(text or "").split()).strip()
 
 
+def _base36(numero):
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    if numero == 0:
+        return "0"
+    resultat = ""
+    while numero:
+        numero, resta = divmod(numero, 36)
+        resultat = digits[resta] + resultat
+    return resultat
+
+
+def _feed_story_id(source):
+    """Replica feedStoryId() de Bondiari, inclosa la semàntica UTF-16 de JS."""
+    hash_value = 0
+    encoded = str(source or "").encode("utf-16-le", "surrogatepass")
+    for index in range(0, len(encoded), 2):
+        code_unit = encoded[index] | (encoded[index + 1] << 8)
+        hash_value = (hash_value * 31 + code_unit) & 0xFFFFFFFF
+    return "feed-{}".format(_base36(hash_value))
+
+
 def _id_noticia(story):
+    story_id = str(story.get("id") or "")
+    if re.fullmatch(r"feed-[0-9a-z]+", story_id):
+        return story_id
+
     image_url = story.get("imageUrl") or ""
-    match = re.search(r"/api/story-image/([^/?#]+)", image_url)
-    if not match:
-        raise ValueError("La capçalera no porta un identificador de Bondiari vàlid.")
-    return match.group(1)
+    match = re.search(r"/api/story-image/(feed-[0-9a-z]+)(?:[/?#]|$)", image_url)
+    if match:
+        return match.group(1)
+
+    # Les fotografies reals de Commons o NASA tenen una URL externa i, per
+    # tant, no poden transportar l'id dins de /api/story-image/. Bondiari crea
+    # l'id estable a partir de story.url; fem exactament el mateix càlcul.
+    source = story.get("url") or story.get("title")
+    if source:
+        return _feed_story_id(source)
+
+    raise ValueError("La capçalera no porta un identificador de Bondiari vàlid.")
 
 
 def es_contingut_publicitari(story):
