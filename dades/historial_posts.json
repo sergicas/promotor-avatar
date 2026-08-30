@@ -294,5 +294,23 @@
         "imatge": "unes ales de papallona iridescents entre fulles d'un bosc, amb llum tènue i daurada de matí. Composició centrada des d'un angle elevat, amb un element complementari i sense repetir els altres enquadraments. Sense text ni persones."
       }
     }
+  },
+  "2026-08-31": {
+    "campanya": "arrel",
+    "tema": "Com la repetició mecànica dels hàbits diaris accelera l'envelliment i com Arrel ajuda a trencar aquesta inèrcia de manera senzilla.",
+    "posts": {
+      "linkedin": {
+        "text": "Fer sempre les coses exactament de la mateixa manera estalvia energia, però envelleix. Quan la rutina es converteix en un automatisme rígid, el cos i la ment perden flexibilitat. Arrel és una aplicació gratuïta dissenyada per identificar aquests hàbits repetitius i proposar petits canvis que activen de nou la teva atenció. Vols començar a moure't diferent? https://apps.apple.com/app/id6758808269\n\nhttps://sergicastillo.com",
+        "imatge": "Un riu estret d'aigua transparent que passa entre roques grises i desgastades, creant petites onades i moviment constant."
+      },
+      "twitter": {
+        "text": "La repetició constant dels mateixos gestos i pensaments crea rigidesa. L'envelliment s'accelera quan es perd la capacitat d'adaptació. Arrel t'ajuda a trencar de forma senzilla aquests automatismes. https://apps.apple.com/app/id6758808269 https://sergicastillo.com",
+        "imatge": "Una branca verda i flexible que brota directament del tronc d'un vell roure de l'escorça clivellada i fosca."
+      },
+      "instagram": {
+        "text": "Quan el dia a dia es redueix a repetir gestos de manera mecànica, la rigidesa s'instal·la sense fer soroll. Arrel t'ajuda a detectar on t'estàs estancant i proposa accions clares per recuperar la flexibilitat.\n\nArrel · gratis a l'App Store (cerca «Arrel»)\n\nsergicastillo.com · enllaç a la bio\n\n#Arrel #longevitat #envellirbé #salut #hàbits #benestar #vitalitat",
+        "imatge": "Un camí de sorra humida que es desvia suau entre pins alts sota la llum tènue del primer matí."
+      }
+    }
   }
 }
