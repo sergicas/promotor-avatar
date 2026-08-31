@@ -312,5 +312,23 @@
         "imatge": "Un camí de sorra humida que es desvia suau entre pins alts sota la llum tènue del primer matí."
       }
     }
+  },
+  "2026-09-01": {
+    "campanya": "sutsumu",
+    "tema": "La importància de seleccionar i conservar només els textos valuosos en lloc d'acumular notes de forma automàtica.",
+    "posts": {
+      "linkedin": {
+        "text": "Diferenciar el que és passatger del que és permanent ajuda a trobar claredat. Guardar-ho tot sovint fa perdre de vista els textos que realment tenen valor. Sutsumu funciona com un calaix discret on només es conserven els escrits que es volen rellegir amb el temps. Té sentit acumular centenars de notes temporals?\n\nhttps://apps.apple.com/app/sutsumu/id6776719183\n\nhttps://sergicastillo.com",
+        "imatge": "Un calaix de fusta obert a mitges on es veu un únic sobre de paper gruixut i una llibreta petita tancada."
+      },
+      "twitter": {
+        "text": "Guardar-ho tot fa invisible allò que realment importa. Sutsumu és un espai tranquil per conservar només els textos valuosos. Quins escrits es voldran rellegir d'aquí a un any?\n\nhttps://apps.apple.com/app/sutsumu/id6776719183 https://sergicastillo.com",
+        "imatge": "Una taula de treball neta amb un sol quadern obert i una ploma estilogràfica reposant al costat, sota una llum suau."
+      },
+      "instagram": {
+        "text": "Acumular notes de forma automàtica dilueix el seu valor. Sutsumu proposa un mètode diferent: un arxiu selectiu per a aquells textos i documents que tenen un sentit real. On es guarden les paraules que realment importen?\n\nSutsumu · disponible a l'App Store\n\nsergicastillo.com · enllaç a la bio\n\n#Sutsumu #arxiupersonal #notes #escriptura #privadesa",
+        "imatge": "Una prestatgeria de fusta clara amb un únic arxivador de cartró elegant i un petit ram de flors seques al costat."
+      }
+    }
   }
 }
