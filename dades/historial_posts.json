@@ -330,5 +330,23 @@
         "imatge": "Una prestatgeria de fusta clara amb un únic arxivador de cartró elegant i un petit ram de flors seques al costat."
       }
     }
+  },
+  "2026-09-02": {
+    "campanya": "bondiari",
+    "tema": "La diferència entre el periodisme que busca el clic ràpid i el que aporta utilitat i context real.",
+    "posts": {
+      "linkedin": {
+        "text": "Un titular dissenyat per provocar només busca un clic ràpid alimentant la indignació. En canvi, la informació útil aporta dades fredes i context per ajudar a prendre decisions en el dia a dia. Funciona com un filtre que separa el soroll de la realitat. Com es prefereix rebre l'actualitat? https://bondiari.com\n\nhttps://sergicastillo.com",
+        "imatge": "Un diari obert sobre una taula de fusta rústica, amb unes ulleres de lectura al costat sota una llum suau."
+      },
+      "twitter": {
+        "text": "Un titular que busca la reacció fàcil no ens ajuda a entendre el món. El periodisme útil dona dades i context per decidir millor. Es pot informar sense cridar? https://bondiari.com https://sergicastillo.com",
+        "imatge": "Un quadern de periodista obert amb anotacions a mà, un bolígraf blau a sobre i una tassa de cafè calenta."
+      },
+      "instagram": {
+        "text": "El periodisme de qualitat no necessita exagerar per rebre atenció. Una notícia útil ofereix elements reals per comprendre el que passa, actuant com una lent neta sobre l'actualitat. Quina mena d'informació es busca avui?\n\nEl Bon Diari · bondiari.com\n\nsergicastillo.com · enllaç a la bio\n\n#ElBonDiari #Bondiari #noticies #Catalunya #actualitat",
+        "imatge": "Una vista d'una ciutat a primera hora del matí des d'una finestra alta, amb els primers raigs de sol."
+      }
+    }
   }
 }
