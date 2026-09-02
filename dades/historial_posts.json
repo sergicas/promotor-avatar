@@ -348,5 +348,23 @@
         "imatge": "Una vista d'una ciutat a primera hora del matí des d'una finestra alta, amb els primers raigs de sol."
       }
     }
+  },
+  "2026-09-03": {
+    "campanya": "cita",
+    "tema": "Una frase de «Inspector Montoliu»",
+    "posts": {
+      "linkedin": {
+        "text": "«Tot anava tan de pressa que la vida passava sense avisar, fugissera com un glaçó de gel en una tarda d’agost.»\n\n— Inspector Montoliu\n\nhttps://www.amazon.es/dp/B0CRJPJ98P\n\nhttps://sergicastillo.com",
+        "imatge": "la llum d'un fanal solitari en un carrer moll de nit, amb ombres allargades i reflexos a l'asfalt. Pla general ampli, amb l'entorn complet visible i profunditat de camp. Sense text ni persones."
+      },
+      "twitter": {
+        "text": "«Tot anava tan de pressa que la vida passava sense avisar, fugissera com un glaçó de gel en una tarda d’agost.»\n\n— Inspector Montoliu https://www.amazon.es/dp/B0CRJPJ98P https://sergicastillo.com",
+        "imatge": "la llum d'un fanal solitari en un carrer moll de nit, amb ombres allargades i reflexos a l'asfalt. Primer pla d'un detall secundari de l'escena, amb un punt de vista dinàmic i diferent del pla general. Sense text ni persones."
+      },
+      "instagram": {
+        "text": "«Tot anava tan de pressa que la vida passava sense avisar, fugissera com un glaçó de gel en una tarda d’agost.»\n\n— Inspector Montoliu\n\nhttps://www.amazon.es/dp/B0CRJPJ98P\n\nsergicastillo.com · enllaç a la bio",
+        "imatge": "la llum d'un fanal solitari en un carrer moll de nit, amb ombres allargades i reflexos a l'asfalt. Composició centrada des d'un angle elevat, amb un element complementari i sense repetir els altres enquadraments. Sense text ni persones."
+      }
+    }
   }
 }
