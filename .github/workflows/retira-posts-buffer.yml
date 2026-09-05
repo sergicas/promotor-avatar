@@ -1,0 +1,35 @@
+name: Retirar posts del Promotor Avatar
+
+on:
+  workflow_dispatch:
+    inputs:
+      dia:
+        description: "Dia programat que s'ha de retirar (YYYY-MM-DD)"
+        required: true
+      confirmar:
+        description: "Escriu RETIRA per confirmar l'operacio"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: posts-diaris
+  cancel-in-progress: false
+
+jobs:
+  retirar:
+    if: github.event.inputs.confirmar == 'RETIRA'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TZ: Europe/Madrid
+      BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install --quiet -r requirements.txt
+      - name: Verificar i retirar els tres posts
+        run: python -u retira_posts_buffer.py "${{ github.event.inputs.dia }}" --executar
