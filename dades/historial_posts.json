@@ -402,5 +402,23 @@
         "imatge": "Una prestatgeria de fusta clara on només hi ha tres llibres enquadernats amb tapes de lli de colors neutres."
       }
     }
+  },
+  "2026-09-06": {
+    "campanya": "bondiari",
+    "tema": "La diferència entre informació de qualitat i titulars sensacionalistes",
+    "posts": {
+      "linkedin": {
+        "text": "Un titular exagerat busca captar l'atenció generant una alarma innecessària. En canvi, la informació útil funciona com un termòmetre de la realitat: aporta dades precises i context per saber exactament què passa al nostre voltant. Quin tipus de periodisme ajuda realment a prendre millors decisions en el dia a dia? A El Bon Diari s'aposta per la serenitat. https://bondiari.com\n\nhttps://sergicastillo.com",
+        "imatge": "Un quadern de periodista obert sobre una taula de fusta, amb un bolígraf al costat i llum suau de matí."
+      },
+      "twitter": {
+        "text": "Rebre un impacte emocional no és el metro de mesura per estar ben informat. El periodisme útil s'explica amb dades i fets, evitant els crits que busquen el clic ràpid. https://bondiari.com https://sergicastillo.com",
+        "imatge": "Una taula de redacció buida a primera hora, amb pantalles apagades i una tassa de cafè fumejant."
+      },
+      "instagram": {
+        "text": "Els titulars fets per indignar duren un segon, però la informació útil actua com una llavor que ajuda a comprendre l'entorn. Es busca soroll o es prefereix conèixer la realitat amb calma i dades clares?\n\nEl Bon Diari · bondiari.com\n\nsergicastillo.com · enllaç a la bio\n\n#ElBonDiari #Bondiari #noticies #Catalunya #actualitat",
+        "imatge": "Un diari obert sobre un banc de pedra en un parc solitari, amb fulles de tardor al voltant."
+      }
+    }
   }
 }
